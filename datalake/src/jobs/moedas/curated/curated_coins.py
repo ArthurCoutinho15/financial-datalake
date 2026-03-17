@@ -3,19 +3,19 @@ from pyspark.sql import DataFrame, SparkSession
 import pyspark.sql.functions as F
 
 from .curated_table import CuratedCoinsTable
+from ..raw.raw_table import RawCoinsTable
 from clients.spark_client import spark_client
 
 
 class CuratedCoins:
     def __init__(self, date: date = date.today()):
         self.date = date
+        self.source = RawCoinsTable()
         self.table = CuratedCoinsTable()
         self.spark: SparkSession = spark_client.get_session()
 
     def get_data(self) -> DataFrame:
-        return self.spark.read.parquet(
-            f"/home/arthur/Arthur/Projetos/financial_pipeline/datalake/lakehouse/raw/raw_coins/data/dt_reference={self.date}"
-        )
+        return self.spark.read.table(self.source.full_name())
 
     def rename_columns(self) -> DataFrame:
         coins = self.get_data()
