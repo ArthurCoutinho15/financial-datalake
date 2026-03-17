@@ -33,15 +33,26 @@ class CuratedCoins:
 
         return coins
 
-    def spread_column(self, df: DataFrame) -> DataFrame:
-        return df.withColumn(
-            "spread",
-            F.round(
-                (F.col("sales_cotation") - F.col("purchase_cotation"))
-                / F.col("purchase_cotation"),
-                6,
-            ),
-        )
+    def metrics_columns(self, df: DataFrame) -> DataFrame:
+        return (
+                df
+                .withColumn(
+                    "spread",
+                    F.round(
+                        (F.col("sales_cotation") - F.col("purchase_cotation"))
+                        / F.col("purchase_cotation"),
+                        6,
+                    ),
+                )
+                .withColumn(
+                    "mid_price",
+                    (F.col("purchase_cotation") + F.col("sales_cotation")) / 2
+                )
+                .withColumn(
+                    "spread_bps",
+                    F.round(((F.col("sales_cotation") - F.col("purchase_cotation")) / F.col("purchase_cotation")) * 10000, 2)
+                )
+            )
 
     def apply_schema(self, df: DataFrame) -> DataFrame:
         schema = self.table.schema()
@@ -65,6 +76,8 @@ class CuratedCoins:
                 date_time_cotation TIMESTAMP,
                 bill_type STRING,
                 spread DOUBLE,
+                mid_price DOUBLE,
+                spread_bps DOUBLE,
                 dt_reference DATE
             )
             USING iceberg
@@ -76,7 +89,7 @@ class CuratedCoins:
 
     def run(self):
         df = self.rename_columns()
-        df = self.spread_column(df)
+        df = self.metrics_columns(df)
         df = self.apply_schema(df)
         self.create_table()
         self.save(df)

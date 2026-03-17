@@ -22,6 +22,8 @@ class CuratedCoinsTable:
                 t.StructField("date_time_cotation", t.TimestampType(), True),
                 t.StructField("bill_type", t.StringType(), True),
                 t.StructField("spread", t.DoubleType(), True),
+                t.StructField("mid_price", t.DoubleType(), True),
+                t.StructField("spread_bps", t.DoubleType(), True),
                 t.StructField("dt_reference", t.DateType(), True),
             ]
         )
