@@ -54,7 +54,7 @@ class RawCoins:
         
         df = (
             df
-            .withColumn("dt_reference", F.lit(date.today()))
+            .withColumn("dt_reference", F.lit(self.date))
         )
 
         return df
@@ -77,10 +77,10 @@ class RawCoins:
         """)
     
     def save(self, df: DataFrame) -> None:
-        df.writeTo(self.table.full_name()).append()
+        df.writeTo(self.table.full_name()).overwritePartitions()
 
     def run(self):
-        df = self.create_dataframe()
+        df = self.create_dataframe() 
         self.create_table()
         self.save(df)
         
