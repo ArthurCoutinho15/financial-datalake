@@ -1,15 +1,35 @@
 from pyspark.sql import SparkSession
+import pyspark.sql.types as t
 
 
 class SparkClient:
-    _spark = None
+    _spark: SparkSession = None
 
     def __init__(self, app_name: str, warehouse: str):
         self.app_name = app_name
         self.warehouse = f"file:///{warehouse}"
 
-    def get_session(self):
+    def _spark_to_sql_type(self, data_type: t.DataType) -> str:
+        if isinstance(data_type, t.StringType):
+            return "STRING"
+        elif isinstance(data_type, t.DoubleType):
+            return "DOUBLE"
+        elif isinstance(data_type, t.LongType):
+            return "LONG"
+        elif isinstance(data_type, t.IntegerType):
+            return "INT"
+        elif isinstance(data_type, t.LongType):
+            return "BIGINT"
+        elif isinstance(data_type, t.TimestampType):
+            return "TIMESTAMP"
+        elif isinstance(data_type, t.DateType):
+            return "DATE"
+        elif isinstance(data_type, t.BooleanType):
+            return "BOOLEAN"
+        else:
+            raise ValueError(f"Tipo não suportado: {data_type}")
 
+    def get_session(self):
         if SparkClient._spark is None:
             SparkClient._spark = (
                 SparkSession.builder.appName(self.app_name)
@@ -32,6 +52,33 @@ class SparkClient:
             )
 
         return SparkClient._spark
+
+    def create_iceberg_table(
+        self, table_name: str, schema: t.StructType, partitions: list[str]
+    ):
+        columns = []
+
+        for field in schema.fields:
+            col_name = field.name
+            col_type = self._spark_to_sql_type(field.dataType)
+            nullable = "" if field.nullable else "NOT NULL"
+
+            columns.append(f"{col_name} {col_type} {nullable}".strip())
+
+        columns_sql = ",\n".join(columns)
+
+        partition_sql = ""
+        if partitions:
+            partition_sql = f"PARTITIONED BY ({', '.join(partitions)})"
+
+        query = f"""
+            CREATE TABLE IF NOT EXISTS {table_name} (
+                {columns_sql}
+            )
+            USING iceberg
+            {partition_sql}
+        """
+        self._spark.sql(query)
 
 
 spark_client = SparkClient(

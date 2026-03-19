@@ -4,7 +4,7 @@ import pyspark.sql.types as t
 class CuratedCoinsTable:
     catalog = "hadoop_catalog"
     database = "curated"
-    table = "curated_coins"
+    table = "coins"
 
     @classmethod
     def full_name(cls):
