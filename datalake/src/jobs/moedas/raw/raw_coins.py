@@ -41,47 +41,33 @@ class RawCoins:
             if data["value"]:
                 record = data["value"][0]
                 record["symbol"] = symbol
-                
+
                 records.append(record)
-                
+
         print(records)
         return records
 
     def create_dataframe(self) -> DataFrame:
         coins_daily_cotation = self.get_daily_cotation()
 
-        df: DataFrame = self.spark.createDataFrame(coins_daily_cotation, schema=self.table.schema())
-        
-        df = (
-            df
-            .withColumn("dt_reference", F.lit(self.date))
+        df: DataFrame = self.spark.createDataFrame(
+            coins_daily_cotation, schema=self.table.schema()
         )
 
-        return df
-    
-    def create_table(self):
+        df = df.withColumn("dt_reference", F.lit(self.date))
 
-        self.spark.sql(f"""
-            CREATE TABLE IF NOT EXISTS {self.table.full_name()} (
-                symbol STRING,
-                paridadeCompra STRING,
-                paridadeVenda STRING,
-                cotacaoCompra STRING,
-                cotacaoVenda STRING,
-                dataHoraCotacao STRING,
-                tipoBoletim STRING,
-                dt_reference DATE
-            )
-            USING iceberg
-            PARTITIONED BY (dt_reference)
-        """)
-    
+        return df
+
     def save(self, df: DataFrame) -> None:
+        spark_client.create_iceberg_table(
+            table_name=self.table.full_name(),
+            schema=self.table.schema(),
+            partitions=["dt_reference"],
+        )
         df.writeTo(self.table.full_name()).overwritePartitions()
 
     def run(self):
-        df = self.create_dataframe() 
-        self.create_table()
+        df = self.create_dataframe()
         self.save(df)
-        
+
         df.show()

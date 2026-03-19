@@ -1,5 +1,4 @@
-from datetime import datetime, date
-from typing import Dict, Any
+from datetime import date
 
 from pyspark.sql import DataFrame, SparkSession
 import pyspark.sql.functions as F
@@ -56,28 +55,16 @@ class RawStocksJob:
 
         return stocks_df
 
-    def create_table(self) -> None:
-        self.spark.sql(f"""
-            CREATE TABLE IF NOT EXISTS {self.raw_table.full_name()} (
-                symbol STRING,
-                datetime STRING,
-                open STRING,
-                high STRING,
-                low STRING,
-                close STRING,
-                volume STRING,
-                dt_reference DATE
-            )
-            USING iceberg
-            PARTITIONED BY (dt_reference)
-        """)
-
     def save(self, df: DataFrame) -> None:
+        spark_client.create_iceberg_table(
+            table_name=self.raw_table.full_name(),
+            schema=self.raw_table.schema(),
+            partitions=["dt_reference"],
+        )
         df.writeTo(self.raw_table.full_name()).overwritePartitions()
 
     def run(self):
         stocks = self.create_dataframe()
-        self.create_table()
         self.save(stocks)
-        
+
         stocks.show()

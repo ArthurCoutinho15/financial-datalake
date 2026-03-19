@@ -4,7 +4,7 @@ from pyspark.sql import types as t
 class RawCoinsTable:
     catalog = "hadoop_catalog"
     database = "raw"
-    table = "raw_coins"
+    table = "coins"
 
     @classmethod
     def full_name(cls):
@@ -12,7 +12,6 @@ class RawCoinsTable:
 
     @classmethod
     def schema(cls):
-
         return t.StructType(
             [
                 t.StructField("symbol", t.StringType(), False),
