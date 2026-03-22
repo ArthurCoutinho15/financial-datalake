@@ -10,13 +10,22 @@ from moedas.curated.curated_coins import CuratedCoins
 from stocks.raw.stocks_job import RawStocksJob
 from stocks.curated.stocks_job import CuratedStocks
 
-if __name__ == "__main__":
-    raw = RawCoins(date=date(2026, 3, 13))
-    raw.run()
-    curated = CuratedCoins(date=date(2026, 3, 13))
-    curated.run()
+from crypto.raw.crypto_job import RawCryptoJob
+from crypto.curated.crypto_job import CuratedCryptoJob
 
-    raw_stocks = RawStocksJob(date=datetime(2026, 3, 13, 21, 24, 0))
-    raw_stocks.run()
-    curated_stocks = CuratedStocks(date=date(2026, 3, 13))
-    curated_stocks.run()
+if __name__ == "__main__":
+    # raw = RawCoins(date=date(2026, 3, 13))
+    # raw.run()
+    # curated = CuratedCoins(date=date(2026, 3, 13))
+    # curated.run()
+
+    # raw_stocks = RawStocksJob(date=datetime(2026, 3, 13, 21, 24, 0))
+    # raw_stocks.run()
+    # curated_stocks = CuratedStocks(date=date(2026, 3, 13))
+    # curated_stocks.run()
+
+    # raw_crypto = RawCryptoJob(date=date(2026, 3, 13))
+    # raw_crypto.run()
+    
+    curated_crypto = CuratedCryptoJob(date=date(2026, 3, 13))
+    curated_crypto.run()
