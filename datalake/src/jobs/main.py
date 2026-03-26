@@ -13,6 +13,11 @@ from stocks.curated.stocks_job import CuratedStocks
 from crypto.raw.crypto_job import RawCryptoJob
 from crypto.curated.crypto_job import CuratedCryptoJob
 
+from clients.clients.raw.clients_job import RawClientsJob
+from clients.portfolios.raw.portolios_job import RawPortfoliosJob
+from clients.positions.raw.positions_job import RawPositionsJob
+from clients.transactions.raw.transactions_job import RawTransactionsJob
+
 if __name__ == "__main__":
     # raw = RawCoins(date=date(2026, 3, 13))
     # raw.run()
@@ -26,6 +31,14 @@ if __name__ == "__main__":
 
     # raw_crypto = RawCryptoJob(date=date(2026, 3, 13))
     # raw_crypto.run()
+    # curated_crypto = CuratedCryptoJob(date=date(2026, 3, 13))
+    # curated_crypto.run()
     
-    curated_crypto = CuratedCryptoJob(date=date(2026, 3, 13))
-    curated_crypto.run()
+    # raw_clients = RawClientsJob(date=date(2026, 3, 13))
+    # raw_clients.run()
+    raw_portfolios = RawPortfoliosJob(date=date(2026, 3, 13))
+    raw_portfolios.run()
+    # raw_positions = RawPositionsJob(date=date(2026, 3, 13))
+    # raw_positions.run()
+    raw_transactions = RawTransactionsJob(date=date(2026, 3, 13))
+    raw_transactions.run()
