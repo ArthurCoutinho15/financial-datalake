@@ -1,3 +1,5 @@
+import os
+
 from pyspark.sql import SparkSession
 import pyspark.sql.types as t
 
@@ -83,5 +85,8 @@ class SparkClient:
 
 spark_client = SparkClient(
     app_name="financial_pipeline",
-    warehouse="/home/arthur/Arthur/Projetos/financial_pipeline/datalake/lakehouse",
+    warehouse=os.getenv(
+        "LAKEHOUSE_PATH",
+        "/home/arthur/Arthur/Projetos/financial_pipeline/datalake/lakehouse",
+    ),
 )
