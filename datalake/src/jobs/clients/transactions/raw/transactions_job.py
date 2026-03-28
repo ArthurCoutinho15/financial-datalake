@@ -1,10 +1,9 @@
+import os
 from datetime import date
 
 from pyspark.sql import DataFrame, SparkSession
 
 import pyspark.sql.functions as F
-import pyspark.sql.types as t
-from pyspark.sql.window import Window
 
 from .transaction_table import RawTransactionsTable
 from clients.spark_client import spark_client
@@ -14,7 +13,15 @@ class RawTransactionsJob:
     def __init__(self, date: date):
         self.date = date
         self.table = RawTransactionsTable()
-        self.path = "/home/arthur/Arthur/Projetos/financial_pipeline/datalake/src/seeds/fake_data_transactions.csv"
+        self.path = os.path.join(
+            os.path.dirname(__file__),
+            "..",
+            "..",
+            "..",
+            "..",
+            "seeds",
+            "fake_data_transactions.csv",
+        )
         self.spark: SparkSession = spark_client.get_session()
 
     def get_data(self) -> DataFrame:
