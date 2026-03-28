@@ -218,3 +218,10 @@ __marimo__/
 
 # Iceberg
 metadata/
+
+#airflow
+airflow/.env
+airflow/logs
+airflow/config
+
+lakehouse
