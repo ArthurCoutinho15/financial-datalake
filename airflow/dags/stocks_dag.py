@@ -24,6 +24,7 @@ with DAG(
     start_date=datetime(2026, 3, 1),
     schedule="@daily",
     catchup=False,
+    max_active_runs=1,
 ) as dag:
     raw = PythonOperator(task_id="raw_stocks", python_callable=run_raw)
 

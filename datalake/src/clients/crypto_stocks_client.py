@@ -1,7 +1,9 @@
 import os
 import requests
 from typing import Optional, Dict, Any
-from datetime import timedelta, datetime
+from datetime import timedelta, datetime, time
+
+from utils.rate_limiter import RateLimiter
 
 import logging
 
@@ -20,16 +22,25 @@ class CryptoStocksClient:
         self.timeout = timeout
         self.API_KEY = str(os.getenv("API_KEY"))
         self.session = requests.Session()
+        self.limiter = RateLimiter(max_requests=8, period=60)
 
     def _make_request(
         self, endpoint: str, params: Optional[Dict[str, Any]]
     ) -> Dict[str, Any]:
+        
+        self.limiter.wait()
+        
         url = f"{self.base_url}/{endpoint.lstrip('/')}"
 
         try:
             logging.info(f"Making request | URL: {url}")
             response = self.session.get(url=url, params=params, timeout=self.timeout)
             response.raise_for_status()
+            
+            if response.status_code == 429:
+                logging.warning("429 Too Many Requests. Aguardando 60s...")
+                time.sleep(60)
+                return self._make_request(endpoint, params)
 
             return response.json()
         except requests.exceptions.HTTPError as e:
