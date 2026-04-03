@@ -36,8 +36,8 @@ class SparkClient:
             SparkClient._spark = (
                 SparkSession.builder.appName(self.app_name)
                 .config(
-                    "spark.jars.packages",
-                    "org.apache.iceberg:iceberg-spark-runtime-3.5_2.12:1.6.0",
+                    "spark.jars",
+                    "/opt/spark/jars/iceberg-spark-runtime-3.5_2.12-1.6.0.jar",
                 )
                 .config(
                     "spark.sql.extensions",
@@ -87,6 +87,6 @@ spark_client = SparkClient(
     app_name="financial_pipeline",
     warehouse=os.getenv(
         "LAKEHOUSE_PATH",
-        "/home/arthur/Arthur/Projetos/financial_pipeline/datalake/lakehouse",
+        "/home/arthur/Arthur/Projetos/financial_pipeline/lakehouse",
     ),
 )

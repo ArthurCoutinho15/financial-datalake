@@ -50,8 +50,8 @@ MAX_POSITIONS     = 10
 MIN_TRANSACTIONS  = 3   # por posição
 MAX_TRANSACTIONS  = 15  # por posição
 
-START_DATE = datetime(2025, 1, 1)
-END_DATE   = datetime(2026, 3, 1)
+START_DATE = datetime(2026, 3, 1)
+END_DATE   = datetime(2026, 3, 31)
 
 # Tickers por tipo — ajuste conforme os tickers da sua curated
 TICKERS = {
@@ -206,7 +206,9 @@ def generate_positions_and_transactions(
             q_min, q_max = QUANTITY_RANGE[asset_type]
 
             pos_id = new_id()
-            pos_created = portfolio["created_at"] + timedelta(days=random.randint(0, 30))
+            # garante que pos_created não ultrapasse END_DATE
+            days_until_end = max(0, (END_DATE - portfolio["created_at"]).days - 1)
+            pos_created = portfolio["created_at"] + timedelta(days=random.randint(0, min(30, days_until_end)))
 
             # Gera transações históricas
             n_tx = random.randint(MIN_TRANSACTIONS, MAX_TRANSACTIONS)

@@ -1,4 +1,4 @@
-from datetime import date
+from datetime import date, timedelta
 
 from pyspark.sql import DataFrame, SparkSession
 
@@ -23,7 +23,7 @@ class CuratedCryptoJob:
         return (
             self.spark.read.table(self.source.full_name())
             .filter(
-                F.col("dt_reference") == self.date
+                F.col("dt_reference") >= F.lit(self.date - timedelta(days=1))
             )
         )
         
@@ -56,6 +56,13 @@ class CuratedCryptoJob:
             .withColumn("range", (F.col("high") - F.col("close")) / F.col("open"))
         )
         
+        df = (
+            df
+            .filter(
+                F.col("dt_reference") == self.date
+            )
+        )
+        
         return df
     
     def save(self, df: DataFrame) -> DataFrame:
@@ -69,6 +76,7 @@ class CuratedCryptoJob:
     def run(self) -> None:
         crypto_df = self.get_data()
         crypto_df = self.cast_columns(crypto_df)
+        crypto_df = self.clean_symbols(crypto_df)
         crypto_df = self.metric_columns(crypto_df)
         self.save(crypto_df)
         

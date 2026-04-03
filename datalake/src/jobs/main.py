@@ -19,26 +19,29 @@ from clients.positions.raw.positions_job import RawPositionsJob
 from clients.transactions.raw.transactions_job import RawTransactionsJob
 
 if __name__ == "__main__":
-    # raw = RawCoins(date=date(2026, 3, 13))
-    # raw.run()
-    # curated = CuratedCoins(date=date(2026, 3, 13))
-    # curated.run()
+    raw = RawCoins(date=date(2026, 3, 13))
+    raw.run()
+    curated = CuratedCoins(date=date(2026, 3, 13))
+    curated.run()
 
-    # raw_stocks = RawStocksJob(date=datetime(2026, 3, 13, 21, 24, 0))
-    # raw_stocks.run()
-    # curated_stocks = CuratedStocks(date=date(2026, 3, 13))
-    # curated_stocks.run()
+    raw_stocks = RawStocksJob(date=datetime(2026, 3, 13, 21, 24, 0))
+    raw_stocks.run()
+    curated_stocks = CuratedStocks(date=date(2026, 3, 13))
+    curated_stocks.run()
 
-    # raw_crypto = RawCryptoJob(date=date(2026, 3, 13))
-    # raw_crypto.run()
-    # curated_crypto = CuratedCryptoJob(date=date(2026, 3, 13))
-    # curated_crypto.run()
+    raw_crypto = RawCryptoJob(date=date(2026, 3, 13))
+    raw_crypto.run()
+    curated_crypto = CuratedCryptoJob(date=date(2026, 3, 13))
+    curated_crypto.run()
     
-    # raw_clients = RawClientsJob(date=date(2026, 3, 13))
-    # raw_clients.run()
+    raw_clients = RawClientsJob(date=date(2026, 3, 13))
+    raw_clients.run()
+    
     raw_portfolios = RawPortfoliosJob(date=date(2026, 3, 13))
     raw_portfolios.run()
-    # raw_positions = RawPositionsJob(date=date(2026, 3, 13))
-    # raw_positions.run()
+    
+    raw_positions = RawPositionsJob(date=date(2026, 3, 13))
+    raw_positions.run()
+    
     raw_transactions = RawTransactionsJob(date=date(2026, 3, 13))
     raw_transactions.run()
