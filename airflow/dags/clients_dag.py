@@ -37,6 +37,14 @@ def run_raw_transactions(**context):
     RawTransactionsJob(date).run()
 
 
+def run_curated_clients(**context):
+    from datalake.src.jobs.clients.clients.curated.clients_job import CuratedClientsJob
+
+    date = datetime.strptime(context["ds"], "%Y-%m-%d").date()
+
+    CuratedClientsJob(date).run()
+
+
 with DAG(
     dag_id="clients_pipeline",
     start_date=datetime(2026, 3, 1),
@@ -57,7 +65,15 @@ with DAG(
         task_id="raw_transactions", python_callable=run_raw_transactions
     )
 
-    clients
-    portfolios
-    positions
-    transactions
+    curated_clients = PythonOperator(
+        task_id="curated_clients", python_callable=run_curated_clients
+    )
+
+    [
+        clients,
+        portfolios,
+        positions,
+        transactions,
+    ] >> curated_clients
+
+    
