@@ -1,11 +1,11 @@
-import pyspark.sql.types as t 
+import pyspark.sql.types as t
 
 
 class CuratedClientsTable:
     catalog = "hadoop_catalog"
     database = "curated"
     table = "clients"
-    
+
     @classmethod
     def full_name(cls):
         return f"{cls.catalog}.{cls.database}.{cls.table}"
@@ -27,11 +27,12 @@ class CuratedClientsTable:
                 t.StructField("ticker", t.StringType(), True),
                 t.StructField("asset_type", t.StringType(), True),
                 t.StructField("position_quantity", t.DoubleType(), True),
-                t.StructField("avg_price_brl", t.DoubleType(), True),
+                t.StructField("position_avg_price_brl", t.DoubleType(), True),
                 t.StructField("transaction_id", t.StringType(), True),
                 t.StructField("transaction_type", t.StringType(), True),
                 t.StructField("transaction_quantity", t.DoubleType(), True),
-                t.StructField("price_brl", t.DoubleType(), True),
+                t.StructField("transaction_price_brl", t.DoubleType(), True),
+                t.StructField("dt_transaction", t.DateType(), True),
                 t.StructField("dt_reference", t.DateType(), True),
             ]
         )

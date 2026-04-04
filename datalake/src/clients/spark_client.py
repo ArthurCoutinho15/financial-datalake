@@ -9,7 +9,7 @@ class SparkClient:
 
     def __init__(self, app_name: str, warehouse: str):
         self.app_name = app_name
-        self.warehouse = f"file:///{warehouse}"
+        self.warehouse = warehouse
 
     def _spark_to_sql_type(self, data_type: t.DataType) -> str:
         if isinstance(data_type, t.StringType):
@@ -38,7 +38,12 @@ class SparkClient:
                 SparkSession.builder.appName(self.app_name)
                 .config(
                     "spark.jars",
-                    "/opt/spark/jars/iceberg-spark-runtime-3.5_2.12-1.6.0.jar",
+                    ",".join([
+                        "/opt/spark/jars/iceberg-spark-runtime-3.5_2.12-1.6.0.jar",
+                        "/opt/spark/jars/iceberg-aws-bundle-1.6.0.jar",
+                        "/opt/spark/jars/hadoop-aws-3.3.4.jar",
+                        "/opt/spark/jars/aws-java-sdk-bundle-1.12.262.jar",
+                    ])
                 )
                 .config(
                     "spark.sql.extensions",
@@ -51,6 +56,13 @@ class SparkClient:
                 .config("spark.sql.catalog.hadoop_catalog.type", "rest")
                 .config("spark.sql.catalog.hadoop_catalog.uri", rest_catalog_uri)
                 .config("spark.sql.default.catalog", "hadoop_catalog")
+                #S3 configs
+                .config("spark.hadoop.fs.s3a.access.key", os.getenv("AWS_ACCESS_KEY_ID"))
+                .config("spark.hadoop.fs.s3a.secret.key", os.getenv("AWS_SECRET_ACCESS_KEY"))
+                .config("spark.hadoop.fs.s3a.endpoint", "s3.amazonaws.com")
+                .config("spark.hadoop.fs.s3a.impl", "org.apache.hadoop.fs.s3a.S3AFileSystem")
+                .config("spark.hadoop.fs.s3a.aws.credentials.provider", "org.apache.hadoop.fs.s3a.SimpleAWSCredentialsProvider")
+                .config("spark.hadoop.fs.s3a.path.style.access", "false")
                 .getOrCreate()
             )
 

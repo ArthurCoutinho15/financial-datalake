@@ -225,3 +225,4 @@ airflow/logs
 airflow/config
 
 lakehouse
+airflow/trino/catalog/iceberg.properties
