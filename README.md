@@ -206,7 +206,81 @@ dbt test
 dbt docs generate
 ```
 
-## 📋 Estrutura de Dados
+## � Trino - Query Engine
+
+**Trino** é um distributed query engine que permite consultar dados diretamente do Iceberg com SQL padrão.
+
+### Acessar o Trino UI
+
+1. Abra o navegador: `http://localhost:8080` (Trino Web UI)
+2. Você pode executar queries SQL diretamente na interface
+
+### Conectar via DBeaver ou Outras Ferramentas
+
+**Configuração de Conexão:**
+- **Host:** `localhost`
+- **Port:** `8080`
+- **Database/Catalog:** `hadoop_catalog`
+- **Schema:** `raw`, `curated` ou `gold`
+- **Username:** (deixar vazio ou usar `trino`)
+- **Password:** (deixar vazio)
+- **Driver:** Trino JDBC
+
+### Exemplos de Queries
+
+```sql
+-- Listar todos os catálogos
+SHOW CATALOGS;
+
+-- Listar schemas
+SHOW SCHEMAS FROM hadoop_catalog;
+
+-- Listar tabelas
+SHOW TABLES FROM hadoop_catalog.raw;
+
+-- Query básica - Clientes com portfolios
+SELECT 
+    client_id,
+    name,
+    email,
+    portfolio_id,
+    portfolio_name,
+    ticker,
+    asset_type,
+    transaction_quantity,
+    transaction_price_brl,
+    dt_transaction
+FROM hadoop_catalog.curated.clients
+WHERE dt_reference = CURRENT_DATE
+LIMIT 100;
+
+-- Análise de posições por cliente
+SELECT 
+    client_id,
+    name,
+    COUNT(DISTINCT portfolio_id) as num_portfolios,
+    COUNT(DISTINCT position_id) as num_posicoes,
+    SUM(transaction_quantity * transaction_price_brl) as valor_total
+FROM hadoop_catalog.curated.clients
+WHERE dt_reference = CURRENT_DATE
+GROUP BY client_id, name;
+```
+
+### Conectar via Linha de Comando
+
+```bash
+# Usando trino-cli
+trino --server localhost:8080 --catalog hadoop_catalog --schema raw
+```
+
+### Configuração no docker-compose.yaml
+
+O Trino está configurado para acessar:
+- **Iceberg Catalog**: Tabelas Ray/Curated/Gold
+- **Conector S3**: Acesso aos dados no S3/MinIO
+- **REST Catalog**: Integração com Iceberg REST server
+
+## �📋 Estrutura de Dados
 
 ### Raw Tables
 - `hadoop_catalog.raw.clients` - Dados brutos de clientes
@@ -233,6 +307,8 @@ pytest tests/
 # Rodar com coverage
 pytest --cov=src tests/
 ```
+## Rodar dados fake
+python src/seeds/fake_data.py --output csv
 
 ## 📝 Logs
 
