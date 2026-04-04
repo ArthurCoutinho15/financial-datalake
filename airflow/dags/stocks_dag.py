@@ -7,6 +7,7 @@ def run_raw(**context):
     from datalake.src.jobs.stocks.raw.stocks_job import RawStocksJob
 
     date = datetime.strptime(context["ds"], "%Y-%m-%d").date()
+    print(f"ds do context: {context['ds']}")
 
     RawStocksJob(date=date).run()
 
