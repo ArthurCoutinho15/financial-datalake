@@ -85,11 +85,12 @@ class CuratedClientsJob:
                 F.col("pos.ticker"),
                 F.col("pos.asset_type"),
                 F.col("pos.quantity").alias("position_quantity"),
-                F.col("pos.avg_price_brl"),
+                F.col("pos.avg_price_brl").alias("position_avg_price_brl"),
                 F.col("t.id").alias("transaction_id"),
                 F.upper(F.col("t.type")).alias("transaction_type"),
                 F.col("t.quantity").alias("transaction_quantity"),
-                F.col("t.price_brl"),
+                F.col("t.price_brl").alias("transaction_price_brl"),
+                F.col("t.executed_at").alias("dt_transaction"),
             )
         )
 
@@ -98,9 +99,10 @@ class CuratedClientsJob:
     def cast_columns(self, df: DataFrame) -> DataFrame:
         return (
             df.withColumn("position_quantity", F.col("position_quantity").cast(t.DoubleType()))
-            .withColumn("avg_price_brl", F.col("avg_price_brl").cast(t.DoubleType()))
+            .withColumn("position_avg_price_brl", F.col("position_avg_price_brl").cast(t.DoubleType()))
             .withColumn("transaction_quantity", F.col("transaction_quantity").cast(t.DoubleType()))
-            .withColumn("price_brl", F.col("price_brl").cast(t.DoubleType()))
+            .withColumn("transaction_price_brl", F.col("transaction_price_brl").cast(t.DoubleType()))
+            .withColumn("dt_transaction", F.col("dt_transaction").cast(t.DateType()))
         )
 
     def create_dt_reference_column(self, df: DataFrame) -> DataFrame:

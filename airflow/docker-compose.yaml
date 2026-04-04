@@ -54,8 +54,13 @@ x-airflow-common:
   environment:
     &airflow-common-env
     PYTHONPATH: /opt/airflow:/opt/airflow/datalake/src
-    LAKEHOUSE_PATH: /opt/airflow/lakehouse
+    # LAKEHOUSE_PATH: /opt/airflow/lakehouse -- desenvolvimento local 
     ICEBERG_REST_URI: "http://iceberg-rest:8181"
+    AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID}
+    AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY}
+    AWS_REGION: ${AWS_REGION}
+    AWS_BUCKET: ${AWS_BUCKET}
+    LAKEHOUSE_PATH: s3a://${AWS_BUCKET}/lakehouse
     AIRFLOW__CORE__EXECUTOR: CeleryExecutor
     AIRFLOW__CORE__AUTH_MANAGER: airflow.providers.fab.auth_manager.fab_auth_manager.FabAuthManager
     AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:airflow@postgres/airflow
@@ -192,6 +197,7 @@ services:
       # Required to handle warm shutdown of the celery workers properly
       # See https://airflow.apache.org/docs/docker-stack/entrypoint.html#signal-propagation
       DUMB_INIT_SETSID: "0"
+      HADOOP_USER_NAME: root
     restart: always
     depends_on:
       <<: *airflow-common-depends-on
@@ -350,13 +356,14 @@ services:
     ports:
       - "8182:8181"
     environment:
-      CATALOG_WAREHOUSE: /opt/airflow/lakehouse  # mudou
-      CATALOG_IO__IMPL: org.apache.iceberg.hadoop.HadoopFileIO
+      CATALOG_WAREHOUSE: s3a://arthur-datalake/lakehouse
+      CATALOG_IO__IMPL: org.apache.iceberg.aws.s3.S3FileIO
       CATALOG_URI: jdbc:postgresql://postgres:5432/iceberg
       CATALOG_JDBC_USER: airflow
       CATALOG_JDBC_PASSWORD: airflow
-    volumes:
-      - ../lakehouse:/opt/airflow/lakehouse  # mudou
+      AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID}
+      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY}
+      AWS_REGION: ${AWS_REGION}
     depends_on:
       postgres:
         condition: service_healthy
@@ -365,9 +372,12 @@ services:
     image: trinodb/trino:438
     ports:
       - "8081:8080"
+    environment:
+      AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID}
+      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY}
+      AWS_REGION: ${AWS_REGION}
     volumes:
       - ./trino/catalog:/etc/trino/catalog
-      - ../lakehouse:/opt/airflow/lakehouse  # mudou
     depends_on:
       - iceberg-rest
     restart: always

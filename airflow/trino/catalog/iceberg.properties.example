@@ -1,0 +1,9 @@
+connector.name=iceberg
+iceberg.catalog.type=rest
+iceberg.rest-catalog.uri=http://iceberg-rest:8181
+iceberg.file-format=PARQUET
+iceberg.register-table-procedure.enabled=true
+fs.native-s3.enabled=true
+s3.aws-access-key=access_key
+s3.aws-secret-key=secre_key
+s3.region=aws_region

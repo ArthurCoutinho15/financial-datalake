@@ -3,15 +3,21 @@ FROM apache/airflow:3.1.0
 USER root
 
 RUN apt-get update && \
-    apt-get install -y default-jdk && \
+    apt-get install -y default-jdk wget curl && \
     apt-get clean
 
 ENV JAVA_HOME=/usr/lib/jvm/default-java
 
 RUN mkdir -p /opt/spark/jars && \
     wget -q https://repo1.maven.org/maven2/org/apache/iceberg/iceberg-spark-runtime-3.5_2.12/1.6.0/iceberg-spark-runtime-3.5_2.12-1.6.0.jar \
-    -O /opt/spark/jars/iceberg-spark-runtime-3.5_2.12-1.6.0.jar
+        -O /opt/spark/jars/iceberg-spark-runtime-3.5_2.12-1.6.0.jar && \
+    wget -q https://repo1.maven.org/maven2/org/apache/hadoop/hadoop-aws/3.3.4/hadoop-aws-3.3.4.jar \
+        -O /opt/spark/jars/hadoop-aws-3.3.4.jar && \
+    wget -q https://repo1.maven.org/maven2/com/amazonaws/aws-java-sdk-bundle/1.12.262/aws-java-sdk-bundle-1.12.262.jar \
+        -O /opt/spark/jars/aws-java-sdk-bundle-1.12.262.jar && \
+    wget -q https://repo1.maven.org/maven2/org/apache/iceberg/iceberg-aws-bundle/1.6.0/iceberg-aws-bundle-1.6.0.jar \
+        -O /opt/spark/jars/iceberg-aws-bundle-1.6.0.jar
 
 USER airflow
 
-RUN pip install pyspark==3.5.0
+RUN pip install pyspark==3.5.0 apache-airflow-providers-amazon
