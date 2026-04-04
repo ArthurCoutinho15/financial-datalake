@@ -1,0 +1,17 @@
+version: 2
+sources:
+  - name: iceberg_curated
+    database: iceberg
+    schema: curated
+
+    tables:
+      - name: clients
+        description: "This table contains client information."
+      - name: stocks
+        description: "This table contains stock information."
+
+      - name: crypto
+        description: "This table contains crypto currency information"
+
+      - name: coins 
+        description: "This table contains coin information"

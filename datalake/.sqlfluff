@@ -1,0 +1,21 @@
+[core]
+dialect = ansi
+templater = jinja2
+
+[sqlfluff:templater:jinja2]
+apply_dbt_macros = true
+dbt_project_dir = ./analytics
+
+[sqlfluff:rules]
+# Espaçamento e formatação
+indent_unit = space
+tab_space_size = 4
+
+# Ignore alguns problemas que não fazem sentido para dbt
+exclude_rules = RF04, AM04
+
+[sqlfluff:rules:capitalisation.keywords]
+capitalisation_policy = lower
+
+[sqlfluff:rules:layout.long_lines]
+line_length = 120
