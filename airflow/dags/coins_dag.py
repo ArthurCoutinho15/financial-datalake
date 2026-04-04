@@ -20,7 +20,7 @@ def run_curated(**context):
 with DAG(
     dag_id="coins_pipeline",
     start_date=datetime(2026, 3, 1),
-    schedule="@daily",
+    schedule=None,
     catchup=False,
 ) as dag:
     raw = PythonOperator(task_id="raw_crypto", python_callable=run_raw)

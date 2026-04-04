@@ -75,5 +75,3 @@ with DAG(
         positions,
         transactions,
     ] >> curated_clients
-
-    

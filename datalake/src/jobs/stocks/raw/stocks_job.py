@@ -64,6 +64,7 @@ class RawStocksJob:
         df.writeTo(self.raw_table.full_name()).overwritePartitions()
 
     def run(self):
+        print(f"Data recebida: {self.date}")
         stocks = self.create_dataframe()
         self.save(stocks)
 

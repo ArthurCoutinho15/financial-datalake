@@ -33,6 +33,7 @@ class SparkClient:
 
     def get_session(self):
         if SparkClient._spark is None:
+            rest_catalog_uri = os.getenv("ICEBERG_REST_URI", "http://localhost:8182")
             SparkClient._spark = (
                 SparkSession.builder.appName(self.app_name)
                 .config(
@@ -47,8 +48,8 @@ class SparkClient:
                     "spark.sql.catalog.hadoop_catalog",
                     "org.apache.iceberg.spark.SparkCatalog",
                 )
-                .config("spark.sql.catalog.hadoop_catalog.type", "hadoop")
-                .config("spark.sql.catalog.hadoop_catalog.warehouse", self.warehouse)
+                .config("spark.sql.catalog.hadoop_catalog.type", "rest")
+                .config("spark.sql.catalog.hadoop_catalog.uri", rest_catalog_uri)
                 .config("spark.sql.default.catalog", "hadoop_catalog")
                 .getOrCreate()
             )

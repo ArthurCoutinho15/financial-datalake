@@ -55,6 +55,7 @@ x-airflow-common:
     &airflow-common-env
     PYTHONPATH: /opt/airflow:/opt/airflow/datalake/src
     LAKEHOUSE_PATH: /opt/airflow/lakehouse
+    ICEBERG_REST_URI: "http://iceberg-rest:8181"
     AIRFLOW__CORE__EXECUTOR: CeleryExecutor
     AIRFLOW__CORE__AUTH_MANAGER: airflow.providers.fab.auth_manager.fab_auth_manager.FabAuthManager
     AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:airflow@postgres/airflow
@@ -291,6 +292,8 @@ services:
         echo
         chown -v -R "${AIRFLOW_UID}:0" /opt/airflow/{logs,plugins,config}
         echo
+        chown -v -R "${AIRFLOW_UID}:0" /opt/airflow/{logs,plugins,config}
+        chmod -R 777 /opt/airflow/lakehouse
         echo "Files in shared volumes:"
         echo
         ls -la /opt/airflow/{logs,dags,plugins,config}
@@ -342,5 +345,50 @@ services:
       airflow-init:
         condition: service_completed_successfully
 
+  iceberg-rest:
+    image: tabulario/iceberg-rest:1.6.0
+    ports:
+      - "8182:8181"
+    environment:
+      CATALOG_WAREHOUSE: /opt/airflow/lakehouse  # mudou
+      CATALOG_IO__IMPL: org.apache.iceberg.hadoop.HadoopFileIO
+      CATALOG_URI: jdbc:postgresql://postgres:5432/iceberg
+      CATALOG_JDBC_USER: airflow
+      CATALOG_JDBC_PASSWORD: airflow
+    volumes:
+      - ../lakehouse:/opt/airflow/lakehouse  # mudou
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  trino:
+    image: trinodb/trino:438
+    ports:
+      - "8081:8080"
+    volumes:
+      - ./trino/catalog:/etc/trino/catalog
+      - ../lakehouse:/opt/airflow/lakehouse  # mudou
+    depends_on:
+      - iceberg-rest
+    restart: always
+
+  postgres-data:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: financial
+      POSTGRES_PASSWORD: financial
+      POSTGRES_DB: financial
+    ports:
+      - "5433:5432"  # porta diferente do postgres do Airflow
+    volumes:
+      - postgres-data-volume:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "financial"]
+      interval: 10s
+      retries: 5
+    restart: always
+
 volumes:
   postgres-db-volume:
+
+  postgres-data-volume:
