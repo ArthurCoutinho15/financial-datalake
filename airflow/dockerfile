@@ -20,4 +20,4 @@ RUN mkdir -p /opt/spark/jars && \
 
 USER airflow
 
-RUN pip install pyspark==3.5.0 apache-airflow-providers-amazon
+RUN pip install pyspark==3.5.0 apache-airflow-providers-amazon dbt-core dbt-trino
