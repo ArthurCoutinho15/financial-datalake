@@ -1,6 +1,15 @@
-# 💰 Financial Pipeline - Data Lake
+# 💰 Financial Pipeline - Data Product
 
-Pipeline de dados financeiros com arquitetura **Medallion** (Bronze/Silver/Gold) para consolidar dados de mercado e carteiras de investimento.
+**Data Product** completo para consolidação, processamento e servicing de dados financeiros. Este projeto implementa um **Data Lakehouse** com arquitetura **Medallion** (Bronze/Silver/Gold), orquestrando pipelines de ingestão, transformação e disponibilização de dados de mercado e carteiras de investimento via API.
+
+## 🎯 Visão Geral
+
+O Financial Pipeline é um data product end-to-end que:
+- 📥 **Ingere** dados de múltiplas fontes (APIs externas, banco de dados de CRUD)
+- 🔄 **Orquestra** pipelines com Airflow em ambiente containerizado
+- 🏗️ **Processa** dados em 3 camadas usando PySpark e dbt
+- 📊 **Transforma** dados brutos em modelos analíticos prontos para consumo
+- 🔌 **Expõe** dados através de APIs e BI
 
 ## 🏗️ Arquitetura
 
@@ -148,6 +157,42 @@ docker compose up -d
 - URL: `http://localhost:8080`
 - Usuário: `airflow`
 - Senha: `airflow`
+
+### Acessar PostgreSQL
+
+O projeto possui **dois bancos PostgreSQL** para diferentes propósitos:
+
+#### 1. **Airflow Database** (Metadados do Airflow)
+- **Porta**: `5432`
+- **Usuário**: `airflow`
+- **Senha**: `airflow`
+- **Banco**: `airflow`
+- **Uso**: Armazena DAGs, execuções e logs do Airflow
+
+#### 2. **Financial Data** (Dados de CRUD)
+- **Porta**: `5433`
+- **Usuário**: `financial`
+- **Senha**: `financial`
+- **Banco**: `financial`
+- **Uso**: Dados transacionais de clientes, portfolios, posições e transações
+
+**Como conectar via DBeaver (ou outra ferramenta):**
+
+1. Instale o [DBeaver](https://dbeaver.io/download/)
+2. Crie uma nova conexão PostgreSQL
+3. Para o banco **Financial Data**, use:
+   - **Server Host**: `localhost`
+   - **Port**: `5433`
+   - **Database**: `financial`
+   - **Username**: `financial`
+   - **Password**: `financial`
+4. Clique em "Test Connection" para verificar
+5. Pronto! Você pode explorar os dados
+
+**Via terminal (psql):**
+```bash
+psql -h localhost -p 5433 -U financial -d financial
+```
 
 ## 🔄 DAGs Disponíveis
 
