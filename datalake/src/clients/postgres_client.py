@@ -3,11 +3,11 @@ import psycopg2
 
 class PostgresClient:
     def __init__(self):
-        self.host = "postgres-data"
+        self.host = "host.docker.internal"
         self.dbname = "financial"
         self.user = "financial"
         self.password = "financial"
-        self.port = 5432
+        self.port = 5433
 
     def get_conn(self):
         return psycopg2.connect(
