@@ -1,4 +1,20 @@
 services:
+  postgres-data:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: financial
+      POSTGRES_PASSWORD: financial
+      POSTGRES_DB: financial
+    ports:
+      - "5433:5432"  # porta diferente do postgres do Airflow
+    volumes:
+      - postgres-data-volume:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "financial"]
+      interval: 10s
+      retries: 5
+    restart: always
+
   api:
     build: .
     ports:
@@ -9,3 +25,9 @@ services:
       - "host.docker.internal:host-gateway"
     volumes:
       - .:/app
+    depends_on:
+      postgres-data:
+        condition: service_healthy
+
+volumes:
+  postgres-data-volume:

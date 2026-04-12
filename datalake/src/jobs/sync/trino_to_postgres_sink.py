@@ -28,15 +28,23 @@ class DataSync:
         conn = self.postgres.get_conn()
         self.postgres.execute_query(conn, query)
 
-    def _create_table_if_not_exists(self, columns):
-        cols_sql = ", ".join([f"{col} TEXT" for col in columns])
-
-        query = f"""
+    def _create_table_if_not_exists(self):
+        query = """
         CREATE TABLE IF NOT EXISTS fct_positions (
-            {cols_sql}
+            client_id           UUID,
+            ticker              TEXT,
+            net_quantity        DOUBLE PRECISION,
+            net_invested        DOUBLE PRECISION,
+            current_price_usd   DOUBLE PRECISION,
+            usd_brl             DOUBLE PRECISION,
+            fx_price_brl        DOUBLE PRECISION,
+            avg_price           DOUBLE PRECISION,
+            position_value_brl  DOUBLE PRECISION,
+            pnl                 DOUBLE PRECISION,
+            return_pct          DOUBLE PRECISION,
+            dt_reference        DATE
         )
         """
-
         conn = self.postgres.get_conn()
         self.postgres.execute_query(conn, query)
 
@@ -47,7 +55,7 @@ class DataSync:
             print("Nenhum dado encontrado")
             return
 
-        self._create_table_if_not_exists(columns)
+        self._create_table_if_not_exists()  
 
         placeholders = ",".join(["%s"] * len(trino_data[0]))
 
@@ -59,7 +67,5 @@ class DataSync:
         """
 
         conn = self.postgres.get_conn()
-
         self.postgres.execute_many(conn, insert_query, trino_data)
-
         print(f"{len(trino_data)} registros inseridos com sucesso!")

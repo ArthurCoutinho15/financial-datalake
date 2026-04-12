@@ -70,59 +70,132 @@ O Financial Pipeline é um data product end-to-end que:
 
 ```
 financial_pipeline/
-├── airflow/
+│
+├── airflow/                                    # Orquestração de pipelines
 │   ├── dags/
-│   │   ├── clients_dag.py          # Pipeline de clientes
-│   │   ├── coins_dag.py            # Pipeline de moedas
-│   │   ├── crypto_dag.py           # Pipeline de criptmoedas
-│   │   └── stocks_dag.py           # Pipeline de ações
-│   ├── config/
-│   │   └── airflow.cfg
-│   ├── docker-compose.yaml
-│   └── dockerfile
-│
-├── datalake/
-│   ├── src/
-│   │   ├── jobs/
-│   │   │   ├── clients/            # Pipeline de clientes
-│   │   │   │   ├── raw/
-│   │   │   │   │   ├── clients_job.py
-│   │   │   │   │   └── clients_table.py
-│   │   │   │   └── curated/
-│   │   │   │       ├── clients_job.py
-│   │   │   │       └── clients_table.py
-│   │   │   ├── stocks/             # Pipeline de ações
-│   │   │   ├── coins/              # Pipeline de moedas
-│   │   │   └── crypto/             # Pipeline de criptmoedas
-│   │   │
-│   │   └── dbt/                    # Transformações (Gold layer)
-│   │       ├── models/
-│   │       │   ├── staging/
-│   │       │   ├── marts/
-│   │       │   └── tests/
-│   │       ├── macros/
-│   │       ├── dbt_project.yml
-│   │       └── profiles.yml
+│   │   ├── clients_dag.py                     # DAG: Pipeline de clientes
+│   │   ├── coins_dag.py                       # DAG: Pipeline de moedas
+│   │   ├── crypto_dag.py                      # DAG: Pipeline de criptmoedas
+│   │   ├── databases_sync_dag.py              # DAG: Sincronização de bancos
+│   │   ├── gold_dbt_dag.py                    # DAG: Transformações dbt (Gold)
+│   │   └── stocks_dag.py                      # DAG: Pipeline de ações
 │   │
-│   ├── notebooks/                  # Análises e testes
-│   ├── docs/
-│   └── requirements.txt
+│   ├── logs/                                   # Logs executados pelas DAGs
+│   │   ├── dag_id=clients_pipeline/
+│   │   ├── dag_id=coins_pipeline/
+│   │   ├── dag_id=crypto_pipeline/
+│   │   ├── dag_id=database_sync/
+│   │   ├── dag_id=dbt_gold_pipeline/
+│   │   ├── dag_id=stocks_pipeline/
+│   │   └── dag_processor/
+│   │
+│   ├── plugins/                                # Plugins customizados do Airflow
+│   │
+│   ├── config/
+│   │   └── airflow.cfg                         # Configurações do Airflow
+│   │
+│   ├── trino/
+│   │   └── catalog/                            # Configuração do catálogo Trino
+│   │
+│   ├── docker-compose.yaml                    # Compose para ambiente Airflow
+│   ├── dockerfile                             # Docker image do Airflow
+│   └── requirements.txt                       # Dependências Python Airflow
 │
-└── lakehouse/
-    ├── raw/                        # Bronze - dados brutos
-    │   ├── clients/
-    │   ├── stocks/
-    │   ├── coins/
-    │   └── crypto/
-    ├── curated/                    # Silver - dados limpos
-    │   ├── clients/
-    │   ├── stocks/
-    │   ├── coins/
-    │   └── crypto/
-    └── gold/                       # Gold - dados prontos
-        ├── staging/
-        └── marts/
+├── backend/                                    # API REST (FastAPI/Flask)
+│   ├── docker-compose.yml                     # Compose para ambiente backend
+│   ├── dockerfile                             # Docker image backend
+│   ├── requirements.txt                       # Dependências Python backend
+│   │
+│   └── src/
+│       ├── main.py                            # Aplicação principal
+│       ├── api/                               # Rotas e endpoints
+│       ├── core/                              # Configurações core
+│       ├── models/                            # Modelos de dados
+│       ├── schemas/                           # Schemas Pydantic
+│       ├── services/                          # Lógica de negócio
+│       └── utils/                             # Utilitários
+
+│
+├── datalake/                                   # Camada de processamento de dados
+│   ├── requirements.txt                       # Dependências Python
+│   │
+│   ├── src/
+│   │   ├── clients/                           # Pipeline de clientes (PySpark)
+│   │   │   ├── raw/                           # Jobs Raw layer
+│   │   │   │   ├── clients_job.py
+│   │   │   │   ├── portfolios_job.py
+│   │   │   │   ├── positions_job.py
+│   │   │   │   └── transactions_job.py
+│   │   │   └── curated/                       # Jobs Curated layer
+│   │   │       └── clients_job.py
+│   │   │
+│   │   ├── jobs/                              # Outros pipelines PySpark
+│   │   │   ├── coins/
+│   │   │   ├── crypto/
+│   │   │   ├── stocks/
+│   │   │   └── databases_sync/
+│   │   │
+│   │   ├── utils/                             # Utilitários compartilhados
+│   │   │
+│   │   ├── seeds/                             # Geração de dados fake
+│   │   │   └── fake_data.py
+│   │   │
+│   │   └── analytics/                         # Transformações dbt (Gold layer)
+│   │       ├── dbt_project.yml                # Projeto dbt
+│   │       ├── profiles.yml                   # Configuração de profiles dbt
+│   │       ├── README.md                      # Documentação dbt
+│   │       │
+│   │       ├── models/
+│   │       │   ├── staging/                   # Modelos de staging (STG)
+│   │       │   └── marts/                     # Modelos de marts (FTC/DIM)
+│   │       │
+│   │       ├── macros/                        # Macros dbt customizadas
+│   │       ├── dbt_packages/                  # Pacotes dbt instalados
+│   │       ├── analyses/                      # Análises exploratórias
+│   │       ├── snapshots/                     # Snapshots de dimensões
+│   │       ├── tests/                         # Testes de qualidade de dados
+│   │       ├── logs/                          # Logs de execução dbt
+│   │       └── target/                        # Saída compilada dbt
+│   │
+│   ├── notebooks/
+│   │   └── teste.ipynb                        # Notebooks de análise
+│   │
+│   ├── docs/
+│   │   └── finance.excalidraw                 # Diagrama da arquitetura
+│   │
+│   └── logs/                                   # Logs gerais do datalake
+│
+├── lakehouse/                                  # Armazenamento de dados (Iceberg)
+│   │
+│   ├── raw/                                    # 🔴 Bronze - Dados brutos
+│   │   ├── coins/                             # Tabelas raw de moedas
+│   │   ├── crypto/                            # Tabelas raw de criptmoedas
+│   │   ├── stocks/                            # Tabelas raw de ações
+│   │   └── transactions/                      # Tabelas raw de transações
+│   │
+│   ├── curated/                                # 🟢 Silver - Dados limpos
+│   │   ├── coins/                             # Tabelas curated de moedas
+│   │   ├── crypto/                            # Tabelas curated de criptmoedas
+│   │   └── stocks/                            # Tabelas curated de ações
+│   │
+│   └── gold/                                   # 🟡 Gold - Dados prontos
+│       ├── staging/                           # Staging models (dbt)
+│       ├── marts/                             # Fatos e dimensões (dbt)
+│       └── [projeto_dbt]/                     # Artefatos do dbt
+│
+├── frontend/                                   # Interface web (opcional)
+│
+├── docker-compose.yml                         # Compose geral (se houver)
+└── README.md                                   # Este arquivo
 ```
+
+### Descrição das Camadas
+
+| Camada | Nome | Descrição |
+|--------|------|-----------|
+| **Bronze** | `lakehouse/raw/` | Dados brutos importados de fontes externas (APIs, bancos) |
+| **Silver** | `lakehouse/curated/` | Dados limpos, validados e normalizados via PySpark |
+| **Gold** | `lakehouse/gold/` | Dados transformados em modelos analíticos prontos via dbt |
 
 ## 🚀 Como Começar
 

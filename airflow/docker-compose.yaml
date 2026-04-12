@@ -46,6 +46,8 @@
 ---
 x-airflow-common:
   &airflow-common
+  extra_hosts:
+      - "host.docker.internal:host-gateway"
   # In order to add custom dependencies or upgrade provider distributions you can use your extended image.
   # Comment the image line, place your Dockerfile in the directory where you placed the docker-compose.yaml
   # and uncomment the "build" line below, Then run `docker-compose build` to build the images.
@@ -324,23 +326,6 @@ services:
       - iceberg-rest
     restart: always
 
-  postgres-data:
-    image: postgres:16
-    environment:
-      POSTGRES_USER: financial
-      POSTGRES_PASSWORD: financial
-      POSTGRES_DB: financial
-    ports:
-      - "5433:5432"  # porta diferente do postgres do Airflow
-    volumes:
-      - postgres-data-volume:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD", "pg_isready", "-U", "financial"]
-      interval: 10s
-      retries: 5
-    restart: always
-
 volumes:
   postgres-db-volume:
 
-  postgres-data-volume:
