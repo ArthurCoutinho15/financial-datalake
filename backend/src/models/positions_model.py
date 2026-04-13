@@ -1,35 +1,29 @@
-from sqlalchemy import (
-    Column,
-    Float,
-    Date,
-    Text,
-    UUID,
-    PrimaryKeyConstraint,
-)
+from datetime import datetime
+from sqlalchemy import Column, DateTime, String, ForeignKey, DECIMAL
 from sqlalchemy.orm import relationship
+from sqlalchemy.dialects.postgresql import UUID
 import uuid
 
 from src.core.configs import settings
 
 
-class AnalyticsPositionsModel(settings.DBBaseModel):
-    __tablename__ = "fct_positions"
-    __table_args__ = (
-        PrimaryKeyConstraint("client_id", "ticker", "dt_reference"),
+class PositionsModel(settings.DBBaseModel):
+    __tablename__ = "positions"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4, index=True)
+    portfolio_id = Column(
+        UUID(as_uuid=True), ForeignKey("portfolios.id"), nullable=False
     )
-    
-    dt_reference = Column(Date, nullable=True)
 
-    client_id = Column(UUID(as_uuid=True), nullable=True)
+    ticker = Column(String(150), nullable=False)
+    asset_type = Column(String(150), nullable=False)
+    quantity = Column(DECIMAL(18, 6), nullable=False)
+    avg_price_brl = Column(DECIMAL(18, 6), nullable=False)
 
-    net_quantity = Column(Float, nullable=True)
-    net_invested = Column(Float, nullable=True)
-    current_price_usd = Column(Float, nullable=True)
-    usd_brl = Column(Float, nullable=True)
-    fx_price_brl = Column(Float, nullable=True)
-    avg_price = Column(Float, nullable=True)
-    position_value_brl = Column(Float, nullable=True)
-    pnl = Column(Float, nullable=True)
-    return_pct = Column(Float, nullable=True)
+    created_at = Column(DateTime, nullable=False, default=datetime.now)
+    updated_at = Column(DateTime, nullable=False, default=datetime.now)
 
-    ticker = Column(Text, nullable=True)
+    portfolio = relationship("PortfoliosModel", back_populates="positions")
+    transactions = relationship(
+        "TransactionsModel", back_populates="position", cascade="all, delete-orphan"
+    )
