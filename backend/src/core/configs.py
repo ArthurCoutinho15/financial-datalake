@@ -19,8 +19,8 @@ class Settings(BaseSettings):
 
     DB_URL_SYNC: str = (
         f"postgresql+psycopg2://{os.getenv('DB_USER')}:"
-        f"{os.getenv('DB_PASS')}@{os.getenv('DB_HOST')}:"
-        f"{os.getenv('DB_PORT')}/{os.getenv('DB_NAME')}"
+        f"{os.getenv('DB_PASS')}@{os.getenv('DB_HOST_LOCAL')}:"
+        f"{os.getenv('DB_PORT_ALEMBIC')}/{os.getenv('DB_NAME')}"
     )
     DBBaseModel: ClassVar = declarative_base()
     
