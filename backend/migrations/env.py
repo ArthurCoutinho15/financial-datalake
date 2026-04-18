@@ -6,8 +6,13 @@ from sqlalchemy import pool
 from alembic import context
 
 from src.core.configs import settings
-
-from src.models import *
+from src.models import (
+    PortfoliosModel,
+    PositionsModel,
+    TransactionsModel,
+    ClientsModel,
+    AnalyticsPositionsModel,
+)
 
 import logging
 logging.getLogger("alembic").setLevel(logging.WARNING)
