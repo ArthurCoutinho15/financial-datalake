@@ -12,15 +12,15 @@ load_dotenv()
 class Settings(BaseSettings):
     API_V1_STR: str = "/api/v1"
     DB_URL: str = (
-        f"postgresql+asyncpg://{os.getenv('DB_USER')}:"
-        f"{os.getenv('DB_PASS')}@{os.getenv('DB_HOST')}:"
-        f"{os.getenv('DB_PORT')}/{os.getenv('DB_NAME')}"
+        f"postgresql+asyncpg://{os.getenv('DB_USER', 'postgres')}:"
+        f"{os.getenv('DB_PASS', 'postgres')}@{os.getenv('DB_HOST', 'localhost')}:"
+        f"{os.getenv('DB_PORT', '5432')}/{os.getenv('DB_NAME', 'financial_db')}"
     )
 
     DB_URL_SYNC: str = (
-        f"postgresql+psycopg2://{os.getenv('DB_USER')}:"
-        f"{os.getenv('DB_PASS')}@{os.getenv('DB_HOST_LOCAL')}:"
-        f"{os.getenv('DB_PORT_ALEMBIC')}/{os.getenv('DB_NAME')}"
+        f"postgresql+psycopg2://{os.getenv('DB_USER', 'postgres')}:"
+        f"{os.getenv('DB_PASS', 'postgres')}@{os.getenv('DB_HOST_LOCAL', 'localhost')}:"
+        f"{os.getenv('DB_PORT_ALEMBIC', '5432')}/{os.getenv('DB_NAME', 'financial_db')}"
     )
     DBBaseModel: ClassVar = declarative_base()
     
