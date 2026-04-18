@@ -22,7 +22,7 @@ jobs:
 
       - name: Rodar Ruff (lint)
         run: |
-          ruff check .
+          ruff check ./backend
 
       - name: Rodar Ruff Formatter
         run: |
@@ -32,16 +32,16 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
       - name: Set up Python
-        uses: action/setuup-python@v2
+        uses: actions/setup-python@v5
         with:
           python-version: "3.12"
       - name: Install dependencies
         run: | 
           python -m pip install --upgrade pip 
           pip install pytest
-          pip install -r requyirements.txt
+          pip install -r requirements.txt
       - name: Run tests
         run: | 
-          pytest testes/ -v
+          pytest tests/ -v
