@@ -4,3 +4,4 @@ from .transactions_model import TransactionsModel
 from .clients_model import ClientsModel
 from .analytics_positions_model import AnalyticsPositionsModel
 
+__all__ = ["PortfoliosModel","PositionsModel","TransactionsModel","ClientsModel","AnalyticsPositionsModel",]

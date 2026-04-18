@@ -6,8 +6,6 @@ from sqlalchemy import (
     UUID,
     PrimaryKeyConstraint,
 )
-from sqlalchemy.orm import relationship
-import uuid
 
 from src.core.configs import settings
 
