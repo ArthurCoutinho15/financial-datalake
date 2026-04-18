@@ -226,3 +226,4 @@ airflow/config
 
 lakehouse
 airflow/trino/catalog/iceberg.properties
+*.db
