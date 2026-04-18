@@ -1,10 +1,9 @@
-from datetime import date, timedelta
+from datetime import date
 
-from pyspark.sql import DataFrame, SparkSession
+from pyspark.sql import DataFrame
 
 import pyspark.sql.functions as F
 import pyspark.sql.types as t
-from pyspark.sql.window import Window
 
 from .clients_table import CuratedClientsTable
 from ..raw.clients_table import RawClientTable

@@ -1,5 +1,4 @@
-from typing import AsyncGenerator, Optional
-from pydantic import BaseModel
+from typing import AsyncGenerator
 
 from sqlalchemy.ext.asyncio import AsyncSession
 

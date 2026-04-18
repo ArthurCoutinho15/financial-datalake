@@ -55,7 +55,7 @@ class DataSync:
             print("Nenhum dado encontrado")
             return
 
-        self._create_table_if_not_exists()  
+        self._create_table_if_not_exists()
 
         placeholders = ",".join(["%s"] * len(trino_data[0]))
 
