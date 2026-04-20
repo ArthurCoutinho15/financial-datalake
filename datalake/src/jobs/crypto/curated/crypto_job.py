@@ -23,7 +23,7 @@ class CuratedCryptoJob:
         return (
             self.spark.read.table(self.source.full_name())
             .filter(
-                F.col("dt_reference") >= F.lit(self.date - timedelta(days=1))
+                F.col("datetime") >= F.lit(self.date - timedelta(days=1))
             )
         )
         
@@ -59,7 +59,7 @@ class CuratedCryptoJob:
         df = (
             df
             .filter(
-                F.col("dt_reference") == self.date
+                F.col("datetime") == self.date
             )
         )
         
@@ -69,7 +69,7 @@ class CuratedCryptoJob:
         spark_client.create_iceberg_table(
             table_name=self.table.full_name(),
             schema=self.table.schema(),
-            partitions=["dt_reference"]
+            partitions=["symbol", "datetime"]
         )
         df.writeTo(self.table.full_name()).overwritePartitions()
         

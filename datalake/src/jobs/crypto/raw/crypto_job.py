@@ -57,10 +57,14 @@ class RawCryptoJob:
         spark_client.create_iceberg_table(
             table_name=self.table.full_name(),
             schema=self.table.schema(),
-            partitions=["dt_reference"],
+            partitions=["symbol", "datetime"],
         )
-
-        df.writeTo(table=self.table.full_name()).overwritePartitions()
+        
+        spark_client.merge_data(
+            table_name=self.table.full_name(),
+            df=df,
+            merge_columns=["symbol", "datetime"]
+        )
 
     def run(self) -> None:
         crypto_data = self.clean_data()
