@@ -2,7 +2,8 @@ from sqlalchemy.orm import sessionmaker
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncEngine, AsyncSession
 from src.core.configs import settings
 
-engine: AsyncEngine = None
+engine: AsyncEngine | None = None
+SessionLocal = None
 
 
 async def get_engine():
@@ -13,12 +14,18 @@ async def get_engine():
 
 
 async def get_session():
+    global SessionLocal
+
     engine = await get_engine()
-    async with sessionmaker(
-        autocommit=False,
-        autoflush=False,
-        expire_on_commit=False,
-        class_=AsyncSession,
-        bind=engine,
-    ) as session:
+
+    if SessionLocal is None:
+        SessionLocal = sessionmaker(
+            bind=engine,
+            class_=AsyncSession,
+            expire_on_commit=False,
+            autoflush=False,
+            autocommit=False,
+        )
+
+    async with SessionLocal() as session:  
         yield session

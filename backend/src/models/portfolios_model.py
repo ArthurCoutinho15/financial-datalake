@@ -15,7 +15,7 @@ class PortfoliosModel(settings.DBBaseModel):
 
     name = Column(String(150), nullable=False)
     created_at = Column(DateTime, nullable=False, default=datetime.now)
-    updated_at = Column(DateTime, nullable=False, default=datetime.now)
+    updated_at = Column(DateTime, nullable=False, default=datetime.now, onupdate=datetime.now)
 
     client = relationship(
         "ClientsModel", foreign_keys=[client_id], back_populates="portfolios"

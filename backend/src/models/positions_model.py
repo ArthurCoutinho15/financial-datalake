@@ -21,7 +21,7 @@ class PositionsModel(settings.DBBaseModel):
     avg_price_brl = Column(DECIMAL(18, 6), nullable=False)
 
     created_at = Column(DateTime, nullable=False, default=datetime.now)
-    updated_at = Column(DateTime, nullable=False, default=datetime.now)
+    updated_at = Column(DateTime, nullable=False, default=datetime.now,  onupdate=datetime.now)
 
     portfolio = relationship("PortfoliosModel", back_populates="positions")
     transactions = relationship(
