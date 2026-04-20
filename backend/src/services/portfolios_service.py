@@ -1,9 +1,10 @@
 import re
-from typing import List
+from typing import List, Tuple
 from uuid import UUID
 
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
+from sqlalchemy import func
 
 from fastapi import HTTPException, status, Response
 
@@ -31,6 +32,25 @@ class PortfoliosService:
         portfolios = results.scalars().unique().all()
         
         return portfolios
+    
+    async def get_portfolios_paginated(self, skip: int = 0, limit: int = 10) -> Tuple[List[PortfoliosModel], int]:
+        """Get portfolios with pagination"""
+        # Get total count
+        count_query = select(func.count(PortfoliosModel.id))
+        count_result = await self.db.execute(count_query)
+        total = count_result.scalar()
+        
+        # Get paginated results
+        query = (
+            select(PortfoliosModel)
+            .order_by(PortfoliosModel.created_at)
+            .offset(skip)
+            .limit(limit)
+        )
+        results = await self.db.execute(query)
+        portfolios = results.scalars().unique().all()
+        
+        return portfolios, total
     
     async def get_portfolio(self, portfolio_id: UUID) -> PortfoliosModel:
         query = select(PortfoliosModel).where(PortfoliosModel.id == portfolio_id)
