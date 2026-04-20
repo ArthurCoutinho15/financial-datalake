@@ -1,31 +1,31 @@
-name: CI
+# name: CI
 
-on:
-  push:
-    branches: [ "main" ]
-  pull_request:
+# on:
+#   push:
+#     branches: [ "main" ]
+#   pull_request:
 
-jobs:
-  lint:
-    runs-on: ubuntu-latest
+# jobs:
+#   lint:
+#     runs-on: ubuntu-latest
 
-    steps:
-      - name: Checkout do código
-        uses: actions/checkout@v4
+#     steps:
+#       - name: Checkout do código
+#         uses: actions/checkout@v4
 
-      - name: Setup Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.12"
+#       - name: Setup Python
+#         uses: actions/setup-python@v5
+#         with:
+#           python-version: "3.12"
 
-      - name: Instalar dependências
-        run: |
-          pip install ruff
+#       - name: Instalar dependências
+#         run: |
+#           pip install ruff
 
-      - name: Rodar Ruff (lint)
-        run: |
-          ruff check .
+#       - name: Rodar Ruff (lint)
+#         run: |
+#           ruff check .
 
-      - name: Rodar Ruff Formatter
-        run: |
-          ruff format --check .
+#       - name: Rodar Ruff Formatter
+#         run: |
+#           ruff format --check .

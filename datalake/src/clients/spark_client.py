@@ -1,6 +1,6 @@
 import os
 
-from pyspark.sql import SparkSession
+from pyspark.sql import SparkSession, DataFrame
 import pyspark.sql.types as t
 
 
@@ -38,12 +38,14 @@ class SparkClient:
                 SparkSession.builder.appName(self.app_name)
                 .config(
                     "spark.jars",
-                    ",".join([
-                        "/opt/spark/jars/iceberg-spark-runtime-3.5_2.12-1.6.0.jar",
-                        "/opt/spark/jars/iceberg-aws-bundle-1.6.0.jar",
-                        "/opt/spark/jars/hadoop-aws-3.3.4.jar",
-                        "/opt/spark/jars/aws-java-sdk-bundle-1.12.262.jar",
-                    ])
+                    ",".join(
+                        [
+                            "/opt/spark/jars/iceberg-spark-runtime-3.5_2.12-1.6.0.jar",
+                            "/opt/spark/jars/iceberg-aws-bundle-1.6.0.jar",
+                            "/opt/spark/jars/hadoop-aws-3.3.4.jar",
+                            "/opt/spark/jars/aws-java-sdk-bundle-1.12.262.jar",
+                        ]
+                    ),
                 )
                 .config(
                     "spark.sql.extensions",
@@ -56,17 +58,65 @@ class SparkClient:
                 .config("spark.sql.catalog.hadoop_catalog.type", "rest")
                 .config("spark.sql.catalog.hadoop_catalog.uri", rest_catalog_uri)
                 .config("spark.sql.default.catalog", "hadoop_catalog")
-                #S3 configs
-                .config("spark.hadoop.fs.s3a.access.key", os.getenv("AWS_ACCESS_KEY_ID"))
-                .config("spark.hadoop.fs.s3a.secret.key", os.getenv("AWS_SECRET_ACCESS_KEY"))
+                # S3 configs
+                .config(
+                    "spark.hadoop.fs.s3a.access.key", os.getenv("AWS_ACCESS_KEY_ID")
+                )
+                .config(
+                    "spark.hadoop.fs.s3a.secret.key", os.getenv("AWS_SECRET_ACCESS_KEY")
+                )
                 .config("spark.hadoop.fs.s3a.endpoint", "s3.amazonaws.com")
-                .config("spark.hadoop.fs.s3a.impl", "org.apache.hadoop.fs.s3a.S3AFileSystem")
-                .config("spark.hadoop.fs.s3a.aws.credentials.provider", "org.apache.hadoop.fs.s3a.SimpleAWSCredentialsProvider")
+                .config(
+                    "spark.hadoop.fs.s3a.impl", "org.apache.hadoop.fs.s3a.S3AFileSystem"
+                )
+                .config(
+                    "spark.hadoop.fs.s3a.aws.credentials.provider",
+                    "org.apache.hadoop.fs.s3a.SimpleAWSCredentialsProvider",
+                )
                 .config("spark.hadoop.fs.s3a.path.style.access", "false")
                 .getOrCreate()
             )
 
         return SparkClient._spark
+
+    def merge_data(
+        self,
+        table_name: str,
+        df: DataFrame,
+        merge_columns: list[str],
+    ) -> None:
+        """
+        Generic merge (upsert) for Iceberg tables
+
+        Merge strategy for data ingestion
+        - If ID already exixts: UPDATE
+        - If ID is new: INSERT
+        """
+
+        df.createOrReplaceTempView("staging")
+
+        on_conditions = " AND ".join(
+            [f"target.{col} = source.{col}" for col in merge_columns]
+        )
+
+        columns = df.columns
+
+        update_set = ",\n".join([f"{col} = source.{col}" for col in columns])
+
+        insert_columns = ", ".join(columns)
+        insert_values = ", ".join([f"source.{col}" for col in columns])
+
+        self.get_session().sql(f"""
+            MERGE INTO {table_name} AS target
+            USING staging AS source
+            ON {on_conditions}
+
+            WHEN MATCHED THEN UPDATE SET
+            {update_set}
+
+            WHEN NOT MATCHED THEN INSERT ({insert_columns})
+            VALUES ({insert_values})
+        """)
 
     def create_iceberg_table(
         self, table_name: str, schema: t.StructType, partitions: list[str]
