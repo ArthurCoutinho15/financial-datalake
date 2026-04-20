@@ -1,7 +1,7 @@
 from typing import List
 from uuid import UUID
 
-from fastapi import APIRouter, status, Depends
+from fastapi import APIRouter, status, Depends, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.core.deps import get_session
@@ -11,6 +11,7 @@ from src.schemas.portfolios_schema import (
     PortfolioCreateSchema,
     PortfolioUpdateSchema,
 )
+from src.schemas.pagination_schema import PaginatedResponse
 from src.services.portfolios_service import PortfoliosService
 
 
@@ -26,11 +27,21 @@ async def post_portfolios(
     return await portfolios_service.post_portfolio(portfolio)
 
 
-@router.get("/", status_code=status.HTTP_200_OK, response_model=List[PortfolioSchema])
-async def get_portfolios(db: AsyncSession = Depends(get_session)):
+@router.get("/", status_code=status.HTTP_200_OK, response_model=PaginatedResponse[PortfolioSchema])
+async def get_portfolios(
+    skip: int = Query(0, ge=0, description="Number of records to skip"),
+    limit: int = Query(10, ge=1, le=100, description="Number of records to return (max 100)"),
+    db: AsyncSession = Depends(get_session)
+):
     portfolios_service = PortfoliosService(db)
+    portfolios, total = await portfolios_service.get_portfolios_paginated(skip=skip, limit=limit)
 
-    return await portfolios_service.get_portfolios()
+    return PaginatedResponse[PortfolioSchema](
+        data=portfolios,
+        total=total,
+        skip=skip,
+        limit=limit
+    )
 
 
 @router.get(

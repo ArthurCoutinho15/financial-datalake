@@ -11,17 +11,46 @@ load_dotenv()
 
 class Settings(BaseSettings):
     API_V1_STR: str = "/api/v1"
-    DB_URL: str = (
-        f"postgresql+asyncpg://{os.getenv('DB_USER', 'postgres')}:"
-        f"{os.getenv('DB_PASS', 'postgres')}@{os.getenv('DB_HOST', 'localhost')}:"
-        f"{os.getenv('DB_PORT', '5432')}/{os.getenv('DB_NAME', 'financial_db')}"
-    )
+    
+    ENV: str = os.getenv("ENV", "dev")
+    
+    DB_USER: str
+    DB_PASS: str
+    DB_NAME: str
+    DB_PORT: str
+    DB_PORT_LOCAL: str = os.getenv("DB_PORT_LOCAL", "5433")
 
-    DB_URL_SYNC: str = (
-        f"postgresql+psycopg2://{os.getenv('DB_USER', 'postgres')}:"
-        f"{os.getenv('DB_PASS', 'postgres')}@{os.getenv('DB_HOST_LOCAL', 'localhost')}:"
-        f"{os.getenv('DB_PORT_ALEMBIC', '5432')}/{os.getenv('DB_NAME', 'financial_db')}"
-    )
+    DB_HOST: str
+    DB_HOST_LOCAL: str
+    
+    @property
+    def DB_URL(self):
+        if self.ENV == "docker":
+            host = self.DB_HOST
+            port = self.DB_PORT
+        else:
+            host = self.DB_HOST_LOCAL
+            port = self.DB_PORT_LOCAL
+
+        return (
+            f"postgresql+asyncpg://{self.DB_USER}:{self.DB_PASS}"
+            f"@{host}:{port}/{self.DB_NAME}"
+        )
+
+    @property
+    def DB_URL_SYNC(self):
+        if self.ENV == "docker":
+            host = self.DB_HOST
+            port = self.DB_PORT
+        else:
+            host = self.DB_HOST_LOCAL
+            port = self.DB_PORT_LOCAL
+        
+        return (
+            f"postgresql+psycopg2://{self.DB_USER}:{self.DB_PASS}"
+            f"@{host}:{port}/{self.DB_NAME}"
+        )
+    
     DBBaseModel: ClassVar = declarative_base()
     
     class Config:
