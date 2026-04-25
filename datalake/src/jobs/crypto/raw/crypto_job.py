@@ -3,7 +3,10 @@ from datetime import date
 from pyspark.sql import SparkSession, DataFrame
 import pyspark.sql.functions as F
 
-from clients.spark_client import spark_client
+from pipelines.spark_client import spark_client
+from pipelines.spark_writer import SparkWriter
+from pipelines.models import WriterConfig, IcebergTableConfig
+
 from clients.crypto_stocks_client import CryptoStocksClient
 from .crypto_table import RawCryptoTable
 
@@ -14,6 +17,7 @@ class RawCryptoJob:
         self.table = RawCryptoTable()
         self.client = CryptoStocksClient()
         self.spark: SparkSession = spark_client.get_session()
+        self.writer = SparkWriter()
         self.symbols = [
             "BTC/USD",
             "ETH/USD",
@@ -54,16 +58,16 @@ class RawCryptoJob:
         return df.withColumn("dt_reference", F.lit(self.date))
 
     def save(self, df: DataFrame) -> None:
-        spark_client.create_iceberg_table(
-            table_name=self.table.full_name(),
-            schema=self.table.schema(),
-            partitions=["symbol", "datetime"],
-        )
-        
-        spark_client.merge_data(
-            table_name=self.table.full_name(),
-            df=df,
-            merge_columns=["symbol", "datetime"]
+        self.writer.write_data(
+            df,
+            WriterConfig(
+                iceberg_table_cfg=IcebergTableConfig(
+                    table_name=self.table.full_name(),
+                    schema=self.table.schema(),
+                    partitions=["symbol", "datetime"],
+                ),
+                mode="APPEND",
+            ),
         )
 
     def run(self) -> None:

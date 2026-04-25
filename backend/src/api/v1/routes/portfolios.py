@@ -1,4 +1,3 @@
-from typing import List
 from uuid import UUID
 
 from fastapi import APIRouter, status, Depends, Query
@@ -27,20 +26,23 @@ async def post_portfolios(
     return await portfolios_service.post_portfolio(portfolio)
 
 
-@router.get("/", status_code=status.HTTP_200_OK, response_model=PaginatedResponse[PortfolioSchema])
+@router.get(
+    "/",
+    status_code=status.HTTP_200_OK,
+    response_model=PaginatedResponse[PortfolioSchema],
+)
 async def get_portfolios(
     skip: int = Query(0, ge=0, description="Number of records to skip"),
-    limit: int = Query(10, ge=1, le=100, description="Number of records to return (max 100)"),
-    db: AsyncSession = Depends(get_session)
+    limit: int = Query(
+        10, ge=1, le=100, description="Number of records to return (max 100)"
+    ),
+    db: AsyncSession = Depends(get_session),
 ):
     portfolios_service = PortfoliosService(db)
-    portfolios, total = await portfolios_service.get_portfolios_paginated(skip=skip, limit=limit)
+    portfolios, total = await portfolios_service.get_portfolios(skip=skip, limit=limit)
 
     return PaginatedResponse[PortfolioSchema](
-        data=portfolios,
-        total=total,
-        skip=skip,
-        limit=limit
+        data=portfolios, total=total, skip=skip, limit=limit
     )
 
 
