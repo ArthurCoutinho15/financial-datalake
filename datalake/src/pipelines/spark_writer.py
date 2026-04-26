@@ -187,7 +187,7 @@ class SparkWriter:
         if writer_config.mode == EnumIngestionMode.UPSERT:
             if writer_config.strategy == EnumMergeStrategy.TYPE1:
                 self._merge_data(
-                    writer_config.table_name,
+                    writer_config.iceberg_table_cfg.table_name,
                     df,
                     merge_columns=writer_config.merge_columns,
                 )
@@ -196,7 +196,7 @@ class SparkWriter:
                 compare_columns = writer_config.compare_columns
 
                 self._merge_type2(
-                    writer_config.table_name, df, business_keys, compare_columns
+                    writer_config.iceberg_table_cfg.table_name, df, business_keys, compare_columns
                 )
             else:
                 raise ValueError(

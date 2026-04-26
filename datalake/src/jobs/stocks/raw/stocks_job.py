@@ -4,7 +4,9 @@ from pyspark.sql import DataFrame, SparkSession
 import pyspark.sql.functions as F
 
 from clients.crypto_stocks_client import CryptoStocksClient
-from clients.spark_client import spark_client
+
+from pipelines import spark_client, SparkWriter
+from pipelines.models import WriterConfig, IcebergTableConfig, EnumIngestionMode
 
 from .stocks_table import RawStocksTable
 
@@ -15,6 +17,7 @@ class RawStocksJob:
         self.date = date
         self.client = CryptoStocksClient()
         self.spark: SparkSession = spark_client.get_session()
+        self.writer = SparkWriter()
         self.stocks = ["AAPL", "MSFT", "GOOGL", "AMZN", "META", "NVDA", "TSLA"]
 
     def _get_data(self) -> list[str]:
@@ -56,16 +59,19 @@ class RawStocksJob:
         return stocks_df
 
     def save(self, df: DataFrame) -> None:
-        spark_client.create_iceberg_table(
-            table_name=self.raw_table.full_name(),
-            schema=self.raw_table.schema(),
-            partitions=["dt_reference"],
+        self.writer.write_data(
+            df,
+            WriterConfig(
+                IcebergTableConfig(
+                    table_name=self.raw_table.full_name(),
+                    schema=self.raw_table.schema(),
+                    partitions=["symbol", "datetime"],
+                ),
+                mode=EnumIngestionMode.APPEND,
+            ),
         )
-        df.writeTo(self.raw_table.full_name()).overwritePartitions()
 
     def run(self):
         print(f"Data recebida: {self.date}")
         stocks = self.create_dataframe()
         self.save(stocks)
-
-        stocks.show()

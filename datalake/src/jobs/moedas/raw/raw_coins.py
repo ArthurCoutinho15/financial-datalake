@@ -1,10 +1,17 @@
 from datetime import date
+from os import sched_getscheduler
 from pyspark.sql import DataFrame, SparkSession
 import pyspark.sql.functions as F
 
+from pipelines import SparkWriter, spark_client
+from pipelines.models import (
+    IcebergTableConfig,
+    WriterConfig,
+    EnumIngestionMode,
+)
+
 from .raw_table import RawCoinsTable
 from clients.banco_central_api_client import BancoCentralApiClient
-from clients.spark_client import spark_client
 
 
 class RawCoins:
@@ -15,6 +22,7 @@ class RawCoins:
             timeout=30,
         )
         self.spark: SparkSession = spark_client.get_session()
+        self.writer = SparkWriter()
         self.date = date
 
     def _get_coins_symbols(self) -> list[str]:
@@ -59,12 +67,17 @@ class RawCoins:
         return df
 
     def save(self, df: DataFrame) -> None:
-        spark_client.create_iceberg_table(
-            table_name=self.table.full_name(),
-            schema=self.table.schema(),
-            partitions=["dt_reference"],
+        self.writer.write_data(
+            df,
+            WriterConfig(
+                iceberg_table_cfg=IcebergTableConfig(
+                    table_name=self.table.full_name(),
+                    schema=self.table.schema(),
+                    partitions=["symbol", "datahoracotacao"],
+                ),
+                mode=EnumIngestionMode.APPEND,
+            ),
         )
-        df.writeTo(self.table.full_name()).overwritePartitions()
 
     def run(self):
         df = self.create_dataframe()

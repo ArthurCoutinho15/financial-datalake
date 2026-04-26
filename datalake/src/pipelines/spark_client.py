@@ -1,8 +1,6 @@
 import os
 
-
 from pyspark.sql import SparkSession
-
 
 class SparkClient:
     _spark: SparkSession = None
@@ -54,6 +52,11 @@ class SparkClient:
                     "org.apache.hadoop.fs.s3a.SimpleAWSCredentialsProvider",
                 )
                 .config("spark.hadoop.fs.s3a.path.style.access", "false")
+                # Pydeequ
+                .config(
+                    "spark.jars.packages",
+                    "com.amazon.deequ:deequ:2.0.7-spark-3.5"
+                )
                 .getOrCreate()
             )
 
