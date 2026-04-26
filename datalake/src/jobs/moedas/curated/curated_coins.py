@@ -2,9 +2,18 @@ from datetime import date
 from pyspark.sql import DataFrame, SparkSession
 import pyspark.sql.functions as F
 
+
+from pipelines import spark_client, SparkReader, SparkWriter
+from pipelines.models import (
+    ReaderConfig,
+    EnumIngestionMode,
+    EnumMergeStrategy,
+    EnumReadMode,
+    WriterConfig,
+    IcebergTableConfig,
+)
 from .curated_table import CuratedCoinsTable
 from ..raw.raw_table import RawCoinsTable
-from clients.spark_client import spark_client
 
 
 class CuratedCoins:
@@ -13,9 +22,18 @@ class CuratedCoins:
         self.source = RawCoinsTable()
         self.table = CuratedCoinsTable()
         self.spark: SparkSession = spark_client.get_session()
+        self.reader = SparkReader()
+        self.writer = SparkWriter()
 
     def get_data(self) -> DataFrame:
-        return self.spark.read.table(self.source.full_name())
+        return self.reader.get_data(
+            ReaderConfig(
+                source_table=self.source.full_name(),
+                target_table=self.table.full_name(),
+                date_column="dataHoraCotacao",
+                mode=EnumReadMode.INCREMENTAL,
+            )
+        )
 
     def rename_columns(self) -> DataFrame:
         coins = self.get_data()
@@ -70,18 +88,22 @@ class CuratedCoins:
         )
 
     def save(self, df: DataFrame) -> None:
-        spark_client.create_iceberg_table(
-            table_name=self.table.full_name(),
-            schema=self.table.schema(),
-            partitions=["dt_reference"],
+        self.writer.write_data(
+            df,
+            WriterConfig(
+                iceberg_table_cfg=IcebergTableConfig(
+                    table_name=self.table.full_name(),
+                    schema=self.table.schema(),
+                    partitions=["symbol", "date_time_cotation"],
+                ),
+                mode=EnumIngestionMode.UPSERT,
+                strategy=EnumMergeStrategy.TYPE1,
+                merge_columns=["symbol", "date_time_cotation"],
+            ),
         )
-        df.writeTo(self.table.full_name()).overwritePartitions()
 
     def run(self):
         df = self.rename_columns()
         df = self.metrics_columns(df)
         df = self.apply_schema(df)
         self.save(df)
-
-        print(df.show())
-        print(df.printSchema())

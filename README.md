@@ -267,6 +267,86 @@ O projeto possui **dois bancos PostgreSQL** para diferentes propósitos:
 psql -h localhost -p 5433 -U financial -d financial
 ```
 
+## 🔧 Stack Tecnológico
+
+### Orquestração & Workflow
+| Tecnologia | Versão | Uso |
+|---|---|---|
+| **Apache Airflow** | 2.8+ | Orquestração de DAGs e pipelines |
+| **Python** | 3.11+ | Linguagem principal de desenvolvimento |
+
+### Processamento de Dados
+| Tecnologia | Versão | Uso |
+|---|---|---|
+| **Apache Spark** | 3.5+ | Processamento distribuído de dados |
+| **PySpark** | 3.5+ | API Python para Spark |
+| **dbt** | 1.5+ | Transformações SQL (camada Gold) |
+| **Pandas** | 2.0+ | Manipulação de dados em memória |
+
+### Armazenamento (Lakehouse)
+| Tecnologia | Versão | Uso |
+|---|---|---|
+| **Apache Iceberg** | 1.6+ | Formato de tabela para o lakehouse |
+| **MinIO/S3** | - | Armazenamento de objetos compatível com S3 |
+| **Hadoop** | 3.3+ | Filesystem distribuído (HDFS) |
+
+### Query & Analytics
+| Tecnologia | Versão | Uso |
+|---|---|---|
+| **Trino** | 437+ | Query engine distribuído para SQL |
+| **Hadoop Hive** | 3.1+ | Metastore para tabelas |
+
+### Banco de Dados
+| Tecnologia | Versão | Uso |
+|---|---|---|
+| **PostgreSQL** | 15+ | Banco de dados CRUD e metadados Airflow |
+| **SQLAlchemy** | 2.0+ | ORM Python |
+| **Alembic** | 1.13+ | Migrations de banco de dados |
+
+### API & Backend
+| Tecnologia | Versão | Uso |
+|---|---|---|
+| **FastAPI** | 0.104+ | Framework web async |
+| **Uvicorn** | 0.24+ | ASGI server |
+| **Pydantic** | 2.0+ | Validação de dados |
+| **SQLAlchemy** | 2.0+ | ORM e conexão BD |
+
+### DevOps & Containerização
+| Tecnologia | Versão | Uso |
+|---|---|---|
+| **Docker** | 24+ | Containerização |
+| **Docker Compose** | 2.20+ | Orquestração de containers |
+
+### Testes & Qualidade
+| Tecnologia | Versão | Uso |
+|---|---|---|
+| **Pytest** | 7.4+ | Framework de testes |
+| **Great Expectations** | - | Data quality & validation |
+
+### Dependências Principais (datalake)
+
+```bash
+pip install pyspark==3.5.0
+pip install pandas==2.0.3
+pip install sqlalchemy==2.0.21
+pip install psycopg2-binary==2.9.9
+pip install python-dotenv==1.0.0
+pip install requests==2.31.0
+pip install faker==19.6.2
+```
+
+### Dependências Principais (backend)
+
+```bash
+pip install fastapi==0.104.1
+pip install uvicorn[standard]==0.24.0
+pip install sqlalchemy==2.0.21
+pip install psycopg2-binary==2.9.9
+pip install python-dotenv==1.0.0
+pip install pydantic==2.5.0
+pip install pydantic-settings==2.1.0
+```
+
 ## 🔄 DAGs Disponíveis
 
 ### 1. `clients_pipeline`
@@ -286,24 +366,369 @@ Pipeline de cotações de moedas/FX.
 ### 4. `crypto_pipeline`
 Pipeline de criptmoedas via APIs públicas.
 
-## 🛠️ Estrutura de Jobs (PySpark)
+## 🛠️ Estrutura PySpark (Reader/Writer/Client)
 
-Cada job segue o padrão:
+O projeto implementa abstrações para interação com o Iceberg através do Spark.
+
+### SparkClient - Gerenciador de Sessão Spark
+
+O `SparkClient` mantém uma sessão única de Spark configurada para trabalhar com Iceberg:
 
 ```python
-class RawClientsJob:
-    def __init__(self, date: date)
-    def _get_data(self) -> DataFrame
-    def transform(self) -> DataFrame
-    def save(self) -> None
-    def run(self) -> None
+from pipelines.spark_client import SparkClient
+
+# Criar instância do client
+spark_client = SparkClient(app_name="financial_pipeline", warehouse="s3://my-warehouse")
+
+# Obter sessão Spark
+spark = spark_client.get_session()
 ```
 
-**Camadas:**
-- **Raw**: Ingestão de dados brutos do banco/APIs
-- **Curated**: Limpeza, validação e joins de múltiplas fontes
+**Funcionalidades:**
+- 🔗 Configuração automática de conexão Iceberg
+- 📦 Carregamento de JARs necessários (Iceberg, AWS SDK)
+- 🔄 Gerenciamento de sessão singleton (uma única instância)
+- ☁️ Suporte a S3 e REST catalogs
 
-## 📊 DBT (Camada Gold)
+**Variáveis de ambiente:**
+```bash
+ICEBERG_REST_URI=http://localhost:8182          # URI do catálogo REST Iceberg
+SPARK_WAREHOUSE_PATH=s3://my-warehouse          # Caminho do warehouse
+AWS_ACCESS_KEY_ID=xxx                           # Credenciais AWS
+AWS_SECRET_ACCESS_KEY=xxx
+```
+
+### SparkReader - Leitura de Dados
+
+O `SparkReader` fornece métodos para ler dados das tabelas Iceberg com tratamento inteligente de datas:
+
+```python
+from pipelines.spark_reader import SparkReader
+from pipelines.models.reader import ReaderConfig, EnumReadMode
+
+reader = SparkReader()
+
+# Configurar leitura
+config = ReaderConfig(
+    source_table="raw.stocks_raw",
+    target_table="curated.stocks_curated",
+    dt_column="date",
+    read_mode=EnumReadMode.INCREMENTAL,
+    lookback_days=7
+)
+
+# Ler dados com configuração
+df = reader.get_data(config)
+```
+
+**Métodos principais:**
+
+| Método | Descrição | Exemplo |
+|--------|-----------|---------|
+| `_read_table(table_name)` | Lê tabela completa | `reader._read_table("raw.stocks_raw")` |
+| `_get_last_processed_data(table, col)` | Obtém última data processada | `reader._get_last_processed_data("curated.stocks", "date")` |
+| `get_data(config)` | Lê dados com configuração inteligente | `reader.get_data(config)` |
+
+**Modos de leitura (EnumReadMode):**
+- `FULL`: Lê todos os dados da tabela
+- `INCREMENTAL`: Lê apenas dados novos desde última execução
+- `RANGE`: Lê dados em intervalo de datas
+
+### SparkWriter - Escrita de Dados
+
+O `SparkWriter` fornece métodos para escrever dados em tabelas Iceberg com suporte a diferentes estratégias de merge:
+
+```python
+from pipelines.spark_writer import SparkWriter
+from pipelines.models.writer import WriterConfig, EnumIngestionMode, EnumMergeStrategy
+
+writer = SparkWriter()
+
+# Configurar escrita
+config = WriterConfig(
+    target_table="curated.stocks_curated",
+    ingestion_mode=EnumIngestionMode.UPSERT,
+    merge_strategy=EnumMergeStrategy.UPDATE_INSERT,
+    partition_cols=["year", "month"]
+)
+
+# Escrever dados
+writer.write(df_transformed, config)
+```
+
+**Métodos principais:**
+
+| Método | Descrição | Uso |
+|--------|-----------|-----|
+| `_create_table()` | Cria tabela Iceberg | Automático na primeira escrita |
+| `_append()` | Append de dados | `EnumIngestionMode.APPEND` |
+| `_upsert()` | Update + Insert (Merge) | `EnumIngestionMode.UPSERT` |
+| `write()` | Escrita inteligente | Detecta modo automaticamente |
+
+**Estratégias de Merge (EnumMergeStrategy):**
+- `APPEND_ONLY`: Apenas adiciona novos registros
+- `UPDATE_INSERT`: Atualiza registros existentes ou insere novos
+- `DELETE_INSERT`: Deleta e re-insere (full refresh)
+- `SCD2`: Slowly Changing Dimensions tipo 2
+
+**Exemplo de pipeline completo:**
+
+```python
+from pipelines.spark_reader import SparkReader
+from pipelines.spark_writer import SparkWriter
+from pipelines.models.reader import ReaderConfig, EnumReadMode
+from pipelines.models.writer import WriterConfig, EnumIngestionMode
+
+class StocksJob:
+    def __init__(self, date: str):
+        self.date = date
+        self.reader = SparkReader()
+        self.writer = SparkWriter()
+    
+    def run(self):
+        # Ler dados incrementais
+        config_read = ReaderConfig(
+            source_table="raw.stocks_raw",
+            dt_column="date",
+            read_mode=EnumReadMode.INCREMENTAL,
+            lookback_days=7
+        )
+        df = self.reader.get_data(config_read)
+        
+        # Transformar dados
+        df_transformed = df.select("id", "symbol", "price", "date")
+        
+        # Escrever com upsert
+        config_write = WriterConfig(
+            target_table="curated.stocks_curated",
+            ingestion_mode=EnumIngestionMode.UPSERT,
+            partition_cols=["date"]
+        )
+        self.writer.write(df_transformed, config_write)
+```
+
+## 📡 API Backend (FastAPI)
+
+A API REST fornece acesso aos dados financeiros através de endpoints estruturados.
+
+### Arquitetura da API
+
+```
+src/
+├── main.py                                    # Aplicação FastAPI
+├── core/
+│   ├── configs.py                             # Configurações globais
+│   └── dependencies.py                        # Injeção de dependências
+│
+├── api/
+│   └── v1/
+│       ├── api.py                             # Router principal v1
+│       └── routes/
+│           ├── analytics.py                   # Endpoints de analytics
+│           ├── clients.py                     # Endpoints de clientes
+│           ├── portfolios.py                  # Endpoints de portfolios
+│           ├── positions.py                   # Endpoints de posições
+│           └── transactions.py                # Endpoints de transações
+│
+├── models/                                    # Modelos de banco de dados (SQLAlchemy)
+│
+├── schemas/                                   # Schemas Pydantic (validação/serialização)
+│
+├── services/                                  # Lógica de negócio
+│
+└── utils/                                     # Funções auxiliares
+```
+
+### Como Iniciar a API
+
+```bash
+# Instalar dependências
+pip install -r requirements.txt
+
+# Rodar em desenvolvimento
+python src/main.py
+
+# Ou com uvicorn diretamente
+uvicorn src.main:app --host 0.0.0.0 --port 8000 --reload
+```
+
+**URL base**: `http://localhost:8000/api/v1`
+
+### Documentação Interativa
+
+A API inclui documentação automática através do Swagger UI:
+- **Swagger UI**: `http://localhost:8000/docs`
+- **ReDoc**: `http://localhost:8000/redoc`
+
+### Endpoints Disponíveis
+
+#### 📊 Analytics
+```
+GET  /api/v1/analytics/portfolio-summary
+GET  /api/v1/analytics/positions-by-asset
+GET  /api/v1/analytics/returns-analysis
+GET  /api/v1/analytics/risk-metrics
+```
+
+#### 👥 Clientes
+```
+GET    /api/v1/clients                        # Listar clientes
+GET    /api/v1/clients/{client_id}            # Obter cliente por ID
+POST   /api/v1/clients                        # Criar novo cliente
+PUT    /api/v1/clients/{client_id}            # Atualizar cliente
+DELETE /api/v1/clients/{client_id}            # Deletar cliente
+```
+
+#### 💼 Portfolios
+```
+GET    /api/v1/portfolios                     # Listar portfolios
+GET    /api/v1/portfolios/{portfolio_id}      # Obter portfolio
+POST   /api/v1/portfolios                     # Criar portfolio
+PUT    /api/v1/portfolios/{portfolio_id}      # Atualizar portfolio
+GET    /api/v1/portfolios/{id}/positions      # Listar posições do portfolio
+```
+
+#### 📈 Posições
+```
+GET    /api/v1/positions                      # Listar posições
+GET    /api/v1/positions/{position_id}        # Obter posição
+POST   /api/v1/positions                      # Criar posição
+PUT    /api/v1/positions/{position_id}        # Atualizar posição
+GET    /api/v1/positions/{id}/history         # Histórico de mudanças
+```
+
+#### 💸 Transações
+```
+GET    /api/v1/transactions                   # Listar transações
+GET    /api/v1/transactions/{transaction_id}  # Obter transação
+POST   /api/v1/transactions                   # Registrar transação
+GET    /api/v1/transactions/by-client/{id}    # Transações por cliente
+```
+
+### Exemplo de Uso da API
+
+**Obter lista de clientes:**
+```bash
+curl -X GET http://localhost:8000/api/v1/clients \
+  -H "Content-Type: application/json"
+```
+
+**Criar novo cliente:**
+```bash
+curl -X POST http://localhost:8000/api/v1/clients \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "João Silva",
+    "email": "joao@example.com",
+    "phone": "(11) 98765-4321"
+  }'
+```
+
+**Obter posições de um portfolio:**
+```bash
+curl -X GET http://localhost:8000/api/v1/portfolios/123/positions \
+  -H "Content-Type: application/json"
+```
+
+### Modelos de Dados
+
+#### Client
+```python
+{
+  "id": "uuid",
+  "name": "string",
+  "email": "string",
+  "phone": "string",
+  "created_at": "datetime",
+  "updated_at": "datetime"
+}
+```
+
+#### Portfolio
+```python
+{
+  "id": "uuid",
+  "client_id": "uuid",
+  "name": "string",
+  "description": "string",
+  "total_value": "float",
+  "created_at": "datetime",
+  "updated_at": "datetime"
+}
+```
+
+#### Position
+```python
+{
+  "id": "uuid",
+  "portfolio_id": "uuid",
+  "asset_type": "stock|crypto|coin",
+  "asset_symbol": "string",
+  "quantity": "float",
+  "average_price": "float",
+  "current_price": "float",
+  "total_value": "float",
+  "created_at": "datetime",
+  "updated_at": "datetime"
+}
+```
+
+#### Transaction
+```python
+{
+  "id": "uuid",
+  "position_id": "uuid",
+  "type": "buy|sell",
+  "quantity": "float",
+  "price": "float",
+  "total": "float",
+  "date": "date",
+  "created_at": "datetime"
+}
+```
+
+## � DAGs e Execução
+
+### 1. `clients_pipeline`
+Orquestra o pipeline completo de clientes:
+- `raw_clients` → raw layer (ingestão do PostgreSQL)
+- `raw_portfolios` → raw layer
+- `raw_positions` → raw layer
+- `raw_transactions` → raw layer
+- `curated_clients` → curated layer (join consolidado)
+
+**Schedule**: Diário às 02:00 UTC
+**Timeout**: 30 minutos
+
+### 2. `stocks_pipeline`
+Pipeline de dados de ações da B3 com backfill diário.
+
+**Schedule**: Diário às 03:00 UTC
+**Fontes**: APIs de preços de ações
+
+### 3. `coins_pipeline`
+Pipeline de cotações de moedas/FX.
+
+**Schedule**: A cada 6 horas
+**Fontes**: APIs de cotações de moedas
+
+### 4. `crypto_pipeline`
+Pipeline de criptmoedas via APIs públicas.
+
+**Schedule**: A cada 12 horas
+**Fontes**: CoinGecko, Binance, etc.
+
+### 5. `databases_sync_dag`
+Sincronização de dados do PostgreSQL para o Iceberg.
+
+**Schedule**: Diário às 01:00 UTC
+**Tabelas**: clients, portfolios, positions, transactions
+
+### 6. `gold_dbt_dag`
+Executa transformações dbt na camada Gold.
+
+**Schedule**: Diário às 05:00 UTC
+**Modelos**: Staging e Marts
 
 A camada `gold` utiliza **dbt** para transformações SQL com:
 - Staging models (limpeza adicional)
@@ -425,36 +850,235 @@ pytest tests/
 # Rodar com coverage
 pytest --cov=src tests/
 ```
-## Rodar dados fake
+
+## Gerar dados fake
+
+```bash
 python src/seeds/fake_data.py --output csv
-
-## 📝 Logs
-
-Logs do Airflow estão disponíveis em:
-- UI do Airflow: `http://localhost:8080/admin/log`
-- Disco local: `./airflow/logs/`
-
-## 🔐 Variáveis de Ambiente
-
-Criar arquivo `.env` na raiz:
-```env
-SPARK_MASTER=spark://localhost:7077
-ICEBERG_CATALOG=hadoop_catalog
-POSTGRES_HOST=localhost
-POSTGRES_DB=financial_db
-POSTGRES_USER=postgres
-POSTGRES_PASSWORD=password
 ```
 
-## 📚 Documentação
+## 🐛 Troubleshooting
 
-- Diagrama da arquitetura: `datalake/docs/finance.excalidraw`
-- DBT docs: `datalake/src/dbt/target/index.html`
+### Problema: Airflow não inicia
+
+**Solução:**
+```bash
+# Limpar volumes antigos
+docker compose down -v
+
+# Reiniciar fresh
+docker compose up -d
+
+# Verificar logs
+docker compose logs airflow-webserver
+```
+
+### Problema: Erro de conexão com PostgreSQL
+
+**Verificar:**
+```bash
+# Verificar se container está rodando
+docker ps | grep postgres
+
+# Testar conexão
+psql -h localhost -p 5433 -U financial -d financial -c "SELECT 1"
+```
+
+### Problema: Spark job falha com erro de Iceberg
+
+**Causas comuns:**
+- Catálogo Iceberg não está rodando
+- Tabela não existe (criar com `CREATE TABLE IF NOT EXISTS`)
+- Permissões de S3/MinIO incorretas
+
+**Solução:**
+```bash
+# Verificar REST URI está acessível
+curl http://localhost:8182/v1/config
+
+# Verificar MinIO está rodando
+curl http://localhost:9000/minio/health/live
+```
+
+### Problema: dbt compile falha
+
+**Verificar:**
+```bash
+cd datalake/src/analytics
+
+# Validar profiles.yml
+dbt debug
+
+# Limpar e recompilar
+rm -rf target/
+dbt parse
+```
+
+### Problema: Sem acesso a arquivos do Airflow
+
+**Solução:**
+```bash
+# Dar permissões corretas
+chmod -R 777 ./airflow/logs
+chmod -R 777 ./airflow/plugins
+
+# Executar como mesmo usuário
+docker compose exec airflow-webserver ls -la /opt/airflow/dags
+```
+
+## 📝 Logs e Monitoramento
+
+Logs dos diferentes componentes:
+
+| Componente | Localização | Comando |
+|---|---|---|
+| **Airflow WebServer** | UI: http://localhost:8080 | `docker compose logs airflow-webserver` |
+| **Airflow Scheduler** | `./airflow/logs/` | `docker compose logs airflow-scheduler` |
+| **Spark Jobs** | Spark UI: http://localhost:4040 | Logs do container |
+| **API Backend** | Console | `docker compose logs backend` |
+| **dbt** | `./datalake/src/analytics/logs/` | `dbt debug -v` |
+
+## 📊 Dashboards & UIs
+
+| Ferramenta | URL | Descrição |
+|---|---|---|
+| **Airflow** | http://localhost:8080 | Orquestração de DAGs |
+| **Spark Master** | http://localhost:8080 | Status dos jobs Spark |
+| **MinIO** | http://localhost:9001 | Gerenciamento de S3 |
+| **Trino** | http://localhost:8080 | Query interface |
+| **API Docs** | http://localhost:8000/docs | Swagger UI da API |
+| **API ReDoc** | http://localhost:8000/redoc | ReDoc da API |
+
+## 🚀 Comandos Úteis
+
+### Airflow
+```bash
+# Listar DAGs
+docker compose exec airflow-webserver airflow dags list
+
+# Rodar DAG manualmente
+docker compose exec airflow-webserver airflow dags trigger clients_pipeline
+
+# Listar tasks de uma DAG
+docker compose exec airflow-webserver airflow dags test clients_pipeline 2024-01-01
+```
+
+### Spark
+```bash
+# Submeter job Spark
+spark-submit --master spark://localhost:7077 datalake/src/jobs/stocks/main.py
+```
+
+### dbt
+```bash
+# Rodar modelos dbt
+cd datalake/src/analytics && dbt run
+
+# Rodar testes dbt
+cd datalake/src/analytics && dbt test
+
+# Gerar docs dbt
+cd datalake/src/analytics && dbt docs generate
+```
+
+### API
+```bash
+# Teste de API
+curl -X GET http://localhost:8000/api/v1/clients
+
+# Teste com jq (pretty print)
+curl -s http://localhost:8000/api/v1/clients | jq
+```
+
+### Docker
+```bash
+# Ver todos os containers
+docker ps -a
+
+# Ver logs em tempo real
+docker compose logs -f [service_name]
+
+# Executar comando em um container
+docker compose exec [service_name] [command]
+```
+
+## ✅ Health Checks
+
+```bash
+# Verificar saúde de todos os serviços
+docker compose ps
+
+# Testar conectividade Iceberg
+curl -s http://localhost:8182/v1/config | jq
+
+# Testar conectividade Trino
+trino --server localhost:8080 --catalog hadoop_catalog --schema raw --execute "SELECT 1"
+
+# Testar API
+curl -s http://localhost:8000/api/v1/clients | jq
+```
+
+## 📚 Boas Práticas
+
+### Para Pipelines PySpark
+
+1. **Sempre usar ReaderConfig e WriterConfig**
+   ```python
+   # ✅ BOM
+   config = ReaderConfig(source_table=..., read_mode=EnumReadMode.INCREMENTAL)
+   df = reader.get_data(config)
+   
+   # ❌ RUIM
+   df = spark.read.table("table")
+   ```
+
+2. **Particionar dados por data**
+   ```python
+   WriterConfig(
+       target_table="curated.stocks",
+       partition_cols=["year", "month"]
+   )
+   ```
+
+3. **Usar transformações lazy do Spark**
+   - Evitar `collect()` sem necessidade
+   - Usar `filter()` e `select()` antes de ações
+
+### Para DAGs Airflow
+
+1. **Use XComs para passar dados entre tasks**
+   ```python
+   ti.xcom_push(key='processed_date', value=date.today())
+   date = ti.xcom_pull(task_ids='previous_task', key='processed_date')
+   ```
+
+2. **Sempre defina `depends_on_past`** quando houver dependência
+   ```python
+   Task(depends_on_past=True, wait_for_downstream=True)
+   ```
+
+3. **Use pools para limitar concorrência**
+   ```python
+   Task(pool='spark_jobs', pool_slots=1)
+   ```
+
+### Para Banco de Dados
+
+1. **Sempre use prepared statements/ORM** para evitar SQL injection
+2. **Crie índices** em colunas frequentemente consultadas
+3. **Faça backup regular** dos dados CRUD
+
+## 📖 Documentação Detalhada
+
+- [**Documentação dbt**](datalake/src/analytics/README.md) - Modelos de dados Gold
+- [**Arquitetura**](datalake/docs/finance.excalidraw) - Diagrama da solução
+- [**Dados Fake**](datalake/src/seeds/README.md) - Geração de dados de teste
 
 ## 👤 Autor
 
-Arthur Coutinho
+**Arthur Coutinho**  
+Portfolio: https://github.com/ArthurCoutinho15
 
 ## 📄 Licença
 
-MIT
+MIT - Use livremente em seus projetos!
