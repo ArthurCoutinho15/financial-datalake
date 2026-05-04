@@ -1,3 +1,5 @@
+from typing import Optional, List
+
 from pyspark.sql import DataFrame
 import pyspark.sql.types as t
 import pyspark.sql.functions as f
@@ -31,7 +33,7 @@ class SparkWriter:
             raise ValueError(f"Tipo não suportado: {data_type}")
 
     def create_iceberg_table(
-        self, table_name: str, schema: t.StructType, partitions: list[str]
+        self, table_name: str, schema: t.StructType, partitions: Optional[List[str]]
     ):
         columns = []
 
